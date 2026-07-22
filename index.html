@@ -15,14 +15,14 @@
     <span class="logo">📄</span>
     <div>
       <h1>Doc Hub</h1>
-      <p>ศูนย์แปลง/แก้เอกสาร Mango ⇄ Google — เรืองอนันต์</p>
+      <p>ศูนย์จัดการเอกสารกลาง · บริษัท เรืองอนันต์ คอร์ปอเรชั่น จำกัด</p>
     </div>
   </div>
 </header>
 
 <nav class="tabs">
   <button class="tab active" data-tab="excel">📊 แปลง Excel ⇄ Sheet</button>
-  <button class="tab" data-tab="boq">📤 ส่ง BOQ ให้ช่าง</button>
+  <button class="tab" data-tab="boq">📤 แปลง Sheet เป็นไฟล์</button>
   <button class="tab" data-tab="word">📝 แก้ Word (100%)</button>
   <button class="tab" data-tab="sop">📖 วิธีใช้ / กติกา</button>
 </nav>
@@ -35,7 +35,7 @@
   <div class="grid2">
     <div class="card">
       <h2>⬆️ แปลงเข้า: Excel → Google Sheet</h2>
-      <p class="hint">ลากไฟล์ .xlsx จาก Mango มาวางได้ทีละหลายไฟล์ (ทั้งชุด QCM/PPN 100+ ไฟล์ก็ได้) ระบบจะแปลงเป็น Google Sheet ให้อัตโนมัติ</p>
+      <p class="hint">ลากไฟล์ .xlsx จากระบบ ERP มาวางได้ทีละหลายไฟล์ (ทั้งโฟลเดอร์หลายร้อยไฟล์ในคลิกเดียว) ระบบจะแปลงเป็น Google Sheet ให้อัตโนมัติ</p>
       <label class="fld">โฟลเดอร์ปลายทางใน Drive:
         <input id="folderName" value="DocHub Import" autocomplete="off">
       </label>
@@ -59,15 +59,15 @@
 <!-- ============ TAB 2 : BOQ ============ -->
 <section id="tab-boq" class="panel">
   <div class="card narrow">
-    <h2>📤 ส่ง BOQ ให้ผู้รับเหมาเป็น "ไฟล์" ไม่ใช่ลิงก์</h2>
-    <p class="hint">วางลิงก์ Google Sheet ของ BOQ แล้วกดปุ่ม — ได้ไฟล์จริงส่งไลน์ให้ช่างได้เลย ช่างไม่ต้องเปิดลิงก์ ไม่ต้องมีบัญชี Google</p>
+    <h2>📤 แปลง Google Sheet เป็น "ไฟล์" ส่งต่อได้ทันที</h2>
+    <p class="hint">วางลิงก์ Google Sheet (เช่น BOQ ใบเสนอราคา รายงาน) แล้วกดปุ่ม — ได้ไฟล์จริงส่งต่อให้คนนอกองค์กรได้เลย ผู้รับไม่ต้องเปิดลิงก์ ไม่ต้องมีบัญชี Google</p>
     <input id="boqLink" placeholder="วางลิงก์ https://docs.google.com/spreadsheets/d/..." autocomplete="off">
     <div class="btnrow">
       <button id="boqXlsx" class="btn primary">⬇️ โหลดเป็น Excel (.xlsx)</button>
       <button id="boqPdf" class="btn">⬇️ โหลดเป็น PDF</button>
     </div>
     <div id="boqMsg" class="msg"></div>
-    <div class="tip">💡 ไฟล์จะใช้ชื่อเดียวกับชื่อไฟล์ Google Sheet · ปุ่มนี้ใช้สิทธิ์บัญชี Google ที่ล็อกอินอยู่ในเบราว์เซอร์ของเราเอง จึงโหลดได้แม้ไฟล์ไม่ได้เปิดแชร์สาธารณะ</div>
+    <div class="tip">💡 ไฟล์จะใช้ชื่อเดียวกับชื่อไฟล์ Google Sheet · ปุ่มนี้ใช้สิทธิ์บัญชี Google ที่ล็อกอินอยู่ในเบราว์เซอร์ของท่านเอง จึงโหลดได้แม้ไฟล์ไม่ได้เปิดแชร์สาธารณะ</div>
   </div>
 </section>
 
@@ -115,9 +115,9 @@
   <div class="card narrow sop">
     <h2>📖 กติกาการใช้เอกสาร (SOP)</h2>
 
-    <h3>🟩 ไฟล์ Excel checklist / template จาก Mango (QCM, PPN)</h3>
+    <h3>🟩 ไฟล์ Excel แบบ checklist / ฟอร์มกรอกข้อมูลจากระบบ ERP</h3>
     <ul>
-      <li>ใช้แท็บ <b>แปลง Excel ⇄ Sheet</b> แปลงเข้าเป็น Google Sheet ทีเดียวทั้งชุด แก้เสร็จส่งออกกลับเป็น .xlsx เข้า Mango</li>
+      <li>ใช้แท็บ <b>แปลง Excel ⇄ Sheet</b> แปลงเข้าเป็น Google Sheet ทีเดียวทั้งชุด แก้เสร็จส่งออกกลับเป็น .xlsx เพื่อนำเข้าระบบ</li>
     </ul>
 
     <h3>🟥 ไฟล์ Excel ที่มีสูตรซับซ้อน / macro</h3>
@@ -133,10 +133,10 @@
       <li>แก้หนัก รื้อโครงเอกสาร → ใช้ Word Online ฟรีที่ <a href="https://office.com" target="_blank" rel="noopener">office.com</a> (สมัครบัญชี Microsoft ฟรี) หรือ Word ในเครื่อง</li>
     </ul>
 
-    <h3>🟨 ส่งเอกสารให้คนนอกองค์กร (ผู้รับเหมา / ช่าง)</h3>
+    <h3>🟨 ส่งเอกสารให้บุคคลภายนอกองค์กร</h3>
     <ul>
-      <li>ส่งเป็น <b>"ไฟล์"</b> เสมอ อย่าส่งลิงก์ — ช่างเปิดไฟล์ได้ทันที ไม่ติดสิทธิ์ ไม่ต้องมีบัญชี Google</li>
-      <li>BOQ → ใช้แท็บ <b>ส่ง BOQ ให้ช่าง</b> · เอกสาร Word → แก้เสร็จจากแท็บแก้ Word แล้วส่งไฟล์นั้นได้เลย</li>
+      <li>ส่งเป็น <b>"ไฟล์"</b> เสมอ อย่าส่งลิงก์ — ผู้รับเปิดไฟล์ได้ทันที ไม่ติดสิทธิ์ ไม่ต้องมีบัญชี Google</li>
+      <li>เอกสารจาก Google Sheet (เช่น BOQ ใบเสนอราคา) → ใช้แท็บ <b>แปลง Sheet เป็นไฟล์</b> · เอกสาร Word → แก้เสร็จจากแท็บแก้ Word แล้วส่งไฟล์นั้นได้เลย</li>
     </ul>
 
     <h3>💡 ทำไมต้องมีกติกานี้</h3>
@@ -147,7 +147,7 @@
 
 </main>
 
-<footer>เรืองอนันต์ · Doc Hub v1 · ทำงานในเบราว์เซอร์ทั้งหมด ไฟล์ไม่ถูกอัปโหลดไปเซิร์ฟเวอร์อื่น</footer>
+<footer>บริษัท เรืองอนันต์ คอร์ปอเรชั่น จำกัด · Doc Hub · ประมวลผลในเบราว์เซอร์ทั้งหมด ไฟล์ไม่ถูกอัปโหลดไปเซิร์ฟเวอร์ภายนอก</footer>
 
 <!-- config dialog -->
 <dialog id="cfgDialog">
