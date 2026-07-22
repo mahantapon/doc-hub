@@ -158,7 +158,10 @@
         line = wattr(sp, 'line'), rule = wattr(sp, 'lineRule');
       if (bef) s.marginTop = (parseInt(bef) / 15) + 'px';
       if (aft) s.marginBottom = (parseInt(aft) / 15) + 'px';
-      if (line && (!rule || rule === 'auto')) s.lineHeight = (parseInt(line) / 240).toFixed(2);
+      // Word "single" (240) ≈ 1.0× แต่ในเบราว์เซอร์ line-height 1.0 บรรทัดจะชนกัน
+      // จึงคูณ 1.25 เพื่อให้อ่านสบายเหมือนที่ Word แสดง (ความเป๊ะจริงดูที่ปุ่มตัวอย่างเป๊ะ)
+      if (line && (!rule || rule === 'auto' || rule === 'atLeast'))
+        s.lineHeight = Math.max(1.25, parseInt(line) / 240 * 1.25).toFixed(2);
     }
     return s;
   }
