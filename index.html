@@ -23,6 +23,7 @@
 <nav class="tabs">
   <button class="tab active" data-tab="excel">📊 แปลง Excel ⇄ Sheet</button>
   <button class="tab" data-tab="boq">📤 แปลง Sheet เป็นไฟล์</button>
+  <button class="tab" data-tab="tpl">📄 สร้างเอกสาร</button>
   <button class="tab" data-tab="word">📝 แก้ Word (100%)</button>
   <button class="tab" data-tab="sop">📖 วิธีใช้ / กติกา</button>
 </nav>
@@ -68,6 +69,28 @@
     </div>
     <div id="boqMsg" class="msg"></div>
     <div class="tip">💡 ไฟล์จะใช้ชื่อเดียวกับชื่อไฟล์ Google Sheet · ปุ่มนี้ใช้สิทธิ์บัญชี Google ที่ล็อกอินอยู่ในเบราว์เซอร์ของท่านเอง จึงโหลดได้แม้ไฟล์ไม่ได้เปิดแชร์สาธารณะ</div>
+  </div>
+</section>
+
+<!-- ============ TAB : TEMPLATE ============ -->
+<section id="tab-tpl" class="panel">
+  <div class="card">
+    <h2>📄 สร้างเอกสารจากแม่แบบ — กรอกฟอร์ม ได้ไฟล์เป๊ะ 100%</h2>
+    <p class="hint">เลือกแม่แบบ กรอกเฉพาะช่องที่เปลี่ยน (ชื่อคู่สัญญา เลขที่ มูลค่า วันที่) แล้วกดสร้าง — ได้ .docx ฟอนต์/เลย์เอาต์/กล่องลอย ครบเหมือนต้นฉบับ เพราะสร้างจากไฟล์จริงโดยไม่มีการแปลง ตัวหนังสือจำนวนเงินระบบเติมให้อัตโนมัติ</p>
+    <label class="fld">แม่แบบเอกสาร
+      <select id="tplSelect"></select>
+    </label>
+    <div id="tplForm" class="formgrid"></div>
+    <div class="btnrow">
+      <button id="tplPreviewBtn" class="btn primary">🔍 สร้าง / พรีวิว</button>
+      <button id="tplDownload" class="btn">⬇️ ดาวน์โหลด .docx</button>
+      <button id="tplPdf" class="btn ghost">🖨️ พิมพ์ / บันทึก PDF</button>
+    </div>
+    <div id="tplMsg" class="msg"></div>
+  </div>
+  <div class="card">
+    <div class="pvhead">ตัวอย่างเอกสาร</div>
+    <div id="tplPreview"></div>
   </div>
 </section>
 
@@ -172,6 +195,7 @@
 <script src="js/app.js"></script>
 <script src="js/excel.js"></script>
 <script src="js/boq.js"></script>
+<script src="js/template.js"></script>
 <script src="js/word.js"></script>
 </body>
 </html>

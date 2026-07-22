@@ -159,6 +159,13 @@ input:focus { outline: 2px solid #b8cdeb; border-color: var(--blue); }
 .wsym { color: #b0bccb; user-select: none; font-size: 13px; }
 .results .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+.formgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; margin: 6px 0 4px; }
+.formgrid .fld.wide { grid-column: 1 / -1; }
+@media (max-width: 760px) { .formgrid { grid-template-columns: 1fr; } }
+select { font-family: inherit; font-size: 15px; border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px; width: 100%; margin-top: 4px; background: #fff; color: var(--text); }
+#tplPreview { padding: 8px; background: #eceff4; border: 1px solid var(--line); border-radius: 0 0 8px 8px; max-height: 78vh; overflow: auto; }
+#tplPreview .docx-wrapper { background: transparent !important; padding: 8px !important; }
+
 .hidden { display: none !important; }
 
 /* sop */
