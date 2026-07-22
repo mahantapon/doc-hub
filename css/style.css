@@ -130,44 +130,16 @@ input:focus { outline: 2px solid #b8cdeb; border-color: var(--blue); }
   padding: 8px 12px; background: #e9edf4; border-radius: 8px 8px 0 0;
   border: 1px solid var(--line); border-bottom: none;
 }
-/* editable page-like document view */
-.docpage-wrap {
+/* single editable exact-document view */
+#wordCanvas {
   background: #dfe4ec; border: 1px solid var(--line); border-radius: 0 0 8px 8px;
-  padding: 18px; max-height: 74vh; overflow: auto;
+  padding: 8px; max-height: 76vh; overflow: auto;
 }
-.docpage {
-  background: #fff; max-width: 820px; margin: 0 auto; padding: 52px 60px;
-  box-shadow: 0 2px 10px rgba(20, 40, 80, .16); border-radius: 2px;
-  font-family: 'Sarabun', 'TH Sarabun New', sans-serif; font-size: 20px;
-  color: #1a1a1a; line-height: 1.5;
-}
-.docsection.aux {
-  background: #f7f9fc; border: 1px dashed var(--line); border-radius: 6px;
-  padding: 6px 14px; margin-bottom: 16px; font-size: 15px;
-}
-#exactPane { margin-top: 14px; }
-#wordPreview {
-  background: #eceff4; border: 1px solid var(--line); border-radius: 0 0 8px 8px;
-  padding: 8px; max-height: 74vh; overflow: auto;
-}
-#wordPreview .docx-wrapper { background: transparent !important; padding: 8px !important; }
-
-.partlabel {
-  font-size: 12.5px; font-weight: 700; color: #8a97ab; letter-spacing: .3px;
-  margin: 6px auto 6px; max-width: 820px;
-}
-.para { border-radius: 4px; }
-.doctable { border-collapse: collapse; width: 100%; margin: 6px 0; }
-.doctable td { border: 1px solid #c8cfda; padding: 4px 9px; vertical-align: top; }
-.wtxbox { border: 1px solid #c8cfda; border-radius: 4px; padding: 6px 12px; margin: 6px 0; background: #fff; }
-.wtab { display: inline-block; min-width: 2.5em; }
-.wimg { max-width: 100%; max-height: 130px; vertical-align: middle; }
-.wimgph { color: #b0bccb; user-select: none; }
-.wt { border-radius: 3px; outline: none; cursor: text; }
-.wt:hover { background: #eaf1fb; box-shadow: 0 0 0 1px #c8d9f0; }
-.wt:focus { background: #fffbe6; box-shadow: 0 0 0 1px var(--amber); }
-.wt.edited { background: #fdf0d5; box-shadow: 0 0 0 1px #ecc063; }
-.wt:empty { display: inline-block; min-width: 10px; }
+#wordCanvas .docx-wrapper { background: transparent !important; padding: 10px !important; }
+#wordCanvas .dx-t[contenteditable="true"] { border-radius: 3px; outline: none; cursor: text; }
+#wordCanvas .dx-t[contenteditable="true"]:hover { background: #eaf1fb; box-shadow: 0 0 0 1px #c8d9f0; }
+#wordCanvas .dx-t[contenteditable="true"]:focus { background: #fffbe6; box-shadow: 0 0 0 1px var(--amber); }
+#wordCanvas .dx-t.edited { background: #fdf0d5; box-shadow: 0 0 0 1px #ecc063; }
 .results .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .formgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; margin: 6px 0 4px; }

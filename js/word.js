@@ -1,84 +1,42 @@
-// Word format-safe editor — WYSIWYG-ish: แก้ข้อความในหน้าเอกสารจริง (จัดหน้า/ตาราง/รูป/ฟอนต์)
-// หลักการ: แก้เฉพาะข้อความใน <w:t> ของไฟล์เดิม ไม่มีการแปลงไฟล์ → format คงเดิม 100%
+// Word format-safe editor — แก้ข้อความ "ในหน้าเอกสารเป๊ะ" (docx-preview ที่ patch ให้ติดเลขอ้างอิง)
+// หลักการเดิม: แก้เฉพาะข้อความใน <w:t> ของไฟล์เดิม ไม่มีการแปลงไฟล์ → format คงเดิม 100%
+// การจับคู่: ตัววาดถูก patch ให้จดลำดับ w:t ตอนอ่าน (window.__dxTexts) และห่อทุกก้อนข้อความ
+// ด้วย span.dx-t ที่มี __dxTid → จับคู่กลับไป w:t ในไฟล์ได้แบบเป๊ะ มีตรวจสอบก่อนเปิดให้แก้
+// จุดไหนตรวจไม่ผ่าน = ล็อกอ่านอย่างเดียว (กันไฟล์พัง)
 'use strict';
 (() => {
   const W_NS = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
   const XML_NS = 'http://www.w3.org/XML/1998/namespace';
-  const R_NS = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
-  const A_NS = 'http://schemas.openxmlformats.org/drawingml/2006/main';
-  const IMG_OK = /^(png|jpg|jpeg|gif|bmp|webp|svg)$/;
+  const MC_NS = 'http://schemas.openxmlformats.org/markup-compatibility/2006';
 
-  let doc = null; // { zip, fileName, parts:[{path,xmlDecl,dom,tNodes,orig,dirty}], images:{path:{rid:url}} }
-
-  const partLabel = p =>
-    p === 'word/document.xml' ? 'เนื้อหาเอกสาร' :
-    /header/.test(p) ? 'หัวกระดาษ' :
-    /footer/.test(p) ? 'ท้ายกระดาษ' :
-    /footnotes/.test(p) ? 'เชิงอรรถ' :
-    /endnotes/.test(p) ? 'อ้างอิงท้ายเรื่อง' : p;
-
-  // ---------- small xml helpers ----------
-  const kids = (el, ln) => [...el.children].filter(c => c.namespaceURI === W_NS && c.localName === ln);
-  const kid = (el, ln) => kids(el, ln)[0] || null;
-  const wval = el => el ? (el.getAttributeNS(W_NS, 'val') || el.getAttribute('w:val')) : null;
-  const wattr = (el, n) => el ? (el.getAttributeNS(W_NS, n) || el.getAttribute('w:' + n)) : null;
-
-  // ---------- run merge (rendering-neutral) ----------
-  const serializeRPr = r => {
-    const rPr = kid(r, 'rPr');
-    return rPr ? new XMLSerializer().serializeToString(rPr) : '';
-  };
-  const isSimpleTextRun = r => {
-    let tCount = 0;
-    for (const c of r.children) {
-      if (c.namespaceURI !== W_NS) return false;
-      if (c.localName === 'rPr') continue;
-      if (c.localName === 't') { tCount++; continue; }
-      return false;
-    }
-    return tCount === 1;
-  };
-  function mergeAdjacentRuns(dom) {
-    const parents = new Set([...dom.getElementsByTagNameNS(W_NS, 'r')].map(r => r.parentNode));
-    for (const parent of parents) {
-      let prev = null;
-      for (const child of [...parent.children]) {
-        if (child.namespaceURI === W_NS && child.localName === 'r' && isSimpleTextRun(child)) {
-          if (prev && serializeRPr(prev) === serializeRPr(child)) {
-            kid(prev, 't').textContent += kid(child, 't').textContent;
-            child.remove();
-            continue;
-          }
-          prev = child;
-        } else prev = null;
+  // ตัววาด (docx-preview) อ่าน mc:AlternateContent เฉพาะลูกตัวแรกของฝั่ง Fallback เสมอ
+  // → รายการ w:t ของเราต้องเลือกฝั่งเดียวกัน ไม่งั้นลำดับไม่ตรงและจับคู่ไม่ได้
+  // และข้อความใน AlternateContent มี 2 สำเนา (Word แสดงฝั่ง Choice, ตัววาดแสดง Fallback)
+  // ถ้าแก้สำเนาเดียว Word จะไม่เห็นการแก้ → ล็อกไว้อ่านอย่างเดียวเพื่อความถูกต้อง
+  function collectTNodes(dom) {
+    const excluded = [];
+    const lockedRoots = [...dom.getElementsByTagNameNS(MC_NS, 'AlternateContent')];
+    for (const ac of lockedRoots) {
+      const fb = [...ac.children].find(c => c.namespaceURI === MC_NS && c.localName === 'Fallback');
+      const chosen = fb ? fb.firstElementChild : null;
+      for (const child of ac.children) {
+        if (child === fb) {
+          for (const sub of child.children) if (sub !== chosen) excluded.push(sub);
+        } else excluded.push(child);
       }
     }
+    const hasAncestorIn = (n, list) => {
+      for (let a = n.parentNode; a; a = a.parentNode) if (list.includes(a)) return true;
+      return false;
+    };
+    const tNodes = [...dom.getElementsByTagNameNS(W_NS, 't')].filter(t => !hasAncestorIn(t, excluded));
+    const locked = new Set(tNodes.filter(t => hasAncestorIn(t, lockedRoots)));
+    return { tNodes, locked };
   }
 
-  // ---------- images (resolve embedded pictures per part) ----------
-  async function loadImages(zip, path, dom) {
-    const map = {};
-    const dir = path.replace(/[^/]+$/, '');
-    const relsPath = dir + '_rels/' + path.slice(dir.length) + '.rels';
-    const relsFile = zip.file(relsPath);
-    if (!relsFile) return map;
-    const rdom = new DOMParser().parseFromString(await relsFile.async('string'), 'application/xml');
-    const rels = {};
-    for (const rel of rdom.getElementsByTagName('Relationship'))
-      rels[rel.getAttribute('Id')] = rel.getAttribute('Target');
-    for (const blip of dom.getElementsByTagNameNS(A_NS, 'blip')) {
-      const rid = blip.getAttributeNS(R_NS, 'embed') || blip.getAttribute('r:embed');
-      if (!rid || rid in map) continue;
-      let target = rels[rid];
-      if (!target) continue;
-      const full = (target.startsWith('/') ? target.slice(1) : dir + target).replace(/\/\.\//g, '/');
-      const ext = (full.match(/\.(\w+)$/) || [, ''])[1].toLowerCase();
-      const f = zip.file(full);
-      if (!f || !IMG_OK.test(ext)) { map[rid] = null; continue; } // emf/wmf ฯลฯ เบราว์เซอร์วาดไม่ได้
-      map[rid] = `data:image/${ext === 'jpg' ? 'jpeg' : ext};base64,` + await f.async('base64');
-    }
-    return map;
-  }
+  let doc = null; // { zip, fileName, parts:[{path,xmlDecl,dom,tNodes,orig,dirty}] }
+  let tidMap = [];      // tid -> { part, idx }
+  let tidSpans = new Map(); // tid -> [span, ...] (header/footer ซ้ำได้หลายหน้า)
 
   // ---------- load ----------
   async function loadDocx(file) {
@@ -87,234 +45,36 @@
       if (!zip.file('word/document.xml'))
         throw new Error('ไฟล์นี้ไม่ใช่ .docx (ถ้าเป็น .doc รุ่นเก่า ให้เปิดใน Word แล้ว Save As เป็น .docx ก่อน)');
       const names = Object.keys(zip.files)
-        .filter(p => /^word\/(document|header\d*|footer\d*|footnotes|endnotes)\.xml$/.test(p));
-      // ลำดับแสดงผลให้เหมือนเอกสาร: หัวกระดาษ → เนื้อหา → ท้ายกระดาษ → อื่น ๆ
-      const rank = p => p.includes('header') ? 0 : p.includes('document') ? 1 : p.includes('footer') ? 2 : 3;
-      names.sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
-      const parts = [], images = {};
+        .filter(p => /^word\/(document|header\d*|footer\d*|footnotes|endnotes)\.xml$/.test(p))
+        .sort((a, b) => a === 'word/document.xml' ? -1 : b === 'word/document.xml' ? 1 : a.localeCompare(b));
+      const parts = [];
       for (const path of names) {
         const text = await zip.file(path).async('string');
         const dom = new DOMParser().parseFromString(text, 'application/xml');
         if (dom.getElementsByTagName('parsererror').length)
           throw new Error('อ่านโครงสร้างไฟล์ไม่ได้ (' + path + ')');
         const xmlDecl = (text.match(/^<\?xml[^>]*\?>/) || [''])[0];
-        mergeAdjacentRuns(dom);
-        const tNodes = [...dom.getElementsByTagNameNS(W_NS, 't')];
-        parts.push({ path, xmlDecl, dom, tNodes, orig: tNodes.map(t => t.textContent), dirty: false });
-        images[path] = await loadImages(zip, path, dom);
+        // หมายเหตุ: "ไม่" รวม run ที่ติดกัน — ลำดับ w:t ต้องตรงกับตัววาดแบบตัวต่อตัว
+        const { tNodes, locked } = collectTNodes(dom);
+        parts.push({ path, xmlDecl, dom, tNodes, locked, orig: tNodes.map(t => t.textContent), dirty: false });
       }
-      doc = { zip, fileName: file.name, parts, images };
+      doc = { zip, fileName: file.name, parts };
       $('#wordFileName').textContent = file.name;
       $('#wordStart').classList.add('hidden');
       $('#wordWork').classList.remove('hidden');
-      $('#exactPane').classList.add('hidden');
-      $('#btnExact').textContent = '🔍 ตัวอย่างเป๊ะ';
       setMsg($('#wordMsg'), '');
       setMsg($('#wordOpenMsg'), '');
-      renderDocView();
+      await renderView();
       updateEditCount();
     } catch (err) {
       setMsg($('#wordOpenMsg'), 'เปิดไฟล์ไม่สำเร็จ: ' + err.message, 'err');
     }
   }
 
-  // ---------- run + paragraph styling ----------
-  function runStyle(t) {
-    const css = {};
-    let r = t.parentNode;
-    while (r && !(r.namespaceURI === W_NS && r.localName === 'r')) r = r.parentNode;
-    const rPr = r && kid(r, 'rPr');
-    if (!rPr) return css;
-    const g = ln => kid(rPr, ln);
-    if (g('b') && wval(g('b')) !== '0' && wval(g('b')) !== 'false') css.fontWeight = '700';
-    if (g('i') && wval(g('i')) !== '0' && wval(g('i')) !== 'false') css.fontStyle = 'italic';
-    if (g('u') && wval(g('u')) && wval(g('u')) !== 'none') css.textDecoration = 'underline';
-    const sz = wval(g('sz'));
-    if (sz) css.fontSize = Math.max(9, Math.min(56, Math.round(parseInt(sz, 10) / 2 * 1.34))) + 'px';
-    const c = wval(g('color'));
-    if (c && c !== 'auto' && /^[0-9A-Fa-f]{6}$/.test(c)) css.color = '#' + c;
-    const hl = wval(g('highlight'));
-    if (hl && hl !== 'none') css.background = hl;
-    return css;
-  }
-
-  function paraStyle(p) {
-    const s = {}, pPr = kid(p, 'pPr');
-    if (!pPr) return s;
-    const jc = wval(kid(pPr, 'jc'));
-    if (jc) s.textAlign = ({ center: 'center', right: 'right', end: 'right', both: 'justify',
-      distribute: 'justify', thaiDistribute: 'justify', left: 'left', start: 'left' })[jc] || 'left';
-    const ind = kid(pPr, 'ind');
-    if (ind) {
-      const fl = wattr(ind, 'firstLine'), hg = wattr(ind, 'hanging'),
-        left = wattr(ind, 'left') || wattr(ind, 'start');
-      if (left) s.paddingLeft = (parseInt(left) / 15) + 'px';
-      if (fl) s.textIndent = (parseInt(fl) / 15) + 'px';
-      if (hg) s.textIndent = '-' + (parseInt(hg) / 15) + 'px';
-    }
-    const sp = kid(pPr, 'spacing');
-    if (sp) {
-      const bef = wattr(sp, 'before'), aft = wattr(sp, 'after'),
-        line = wattr(sp, 'line'), rule = wattr(sp, 'lineRule');
-      if (bef) s.marginTop = (parseInt(bef) / 15) + 'px';
-      if (aft) s.marginBottom = (parseInt(aft) / 15) + 'px';
-      // Word "single" (240) ≈ 1.0× แต่ในเบราว์เซอร์ line-height 1.0 บรรทัดจะชนกัน
-      // จึงคูณ 1.25 เพื่อให้อ่านสบายเหมือนที่ Word แสดง (ความเป๊ะจริงดูที่ปุ่มตัวอย่างเป๊ะ)
-      if (line && (!rule || rule === 'auto' || rule === 'atLeast'))
-        s.lineHeight = Math.max(1.25, parseInt(line) / 240 * 1.25).toFixed(2);
-    }
-    return s;
-  }
-
-  // ---------- editable text span (maps to a w:t node) ----------
-  function makeSpan(part, idx) {
-    const node = part.tNodes[idx];
-    const span = document.createElement('span');
-    span.className = 'wt';
-    span.contentEditable = 'true';
-    span.spellcheck = false;
-    span.textContent = node.textContent;
-    Object.assign(span.style, runStyle(node));
-    span.classList.toggle('edited', node.textContent !== part.orig[idx]);
-    span.addEventListener('keydown', e => {
-      if (e.key === 'Enter') e.preventDefault();
-      if ((e.metaKey || e.ctrlKey) && ['b', 'i', 'u'].includes(e.key.toLowerCase())) e.preventDefault();
-    });
-    span.addEventListener('input', () => {
-      const txt = span.textContent.replace(/[\r\n]+/g, ' ');
-      node.textContent = txt;
-      part.dirty = true;
-      span.classList.toggle('edited', txt !== part.orig[idx]);
-      updateEditCount();
-    });
-    span.addEventListener('blur', () => { if (span.children.length) span.textContent = node.textContent; });
-    return span;
-  }
-
-  // ---------- render document tree into editable HTML ----------
-  function appendImage(div, ctx, rid) {
-    const src = rid ? ctx.images[rid] : null;
-    if (src) { const img = document.createElement('img'); img.className = 'wimg'; img.src = src; div.appendChild(img); }
-    else { const s = document.createElement('span'); s.className = 'wimgph'; s.textContent = '🖼'; div.appendChild(s); }
-  }
-
-  function walkInline(node, div, ctx) {
-    for (const ch of node.childNodes) {
-      if (ch.nodeType !== 1) continue;
-      if (ch.namespaceURI === W_NS) {
-        const ln = ch.localName;
-        if (ln === 't') { const i = ctx.idxMap.get(ch); if (i !== undefined) div.appendChild(makeSpan(ctx.part, i)); }
-        else if (ln === 'tab') { const s = document.createElement('span'); s.className = 'wtab'; div.appendChild(s); }
-        else if (ln === 'br' || ln === 'cr') div.appendChild(document.createElement('br'));
-        else if (ln === 'p') { /* nested para handled by caller */ }
-        else if (ln === 'txbxContent') { const box = document.createElement('div'); box.className = 'wtxbox'; renderBlocks(box, ch, ctx); div.appendChild(box); }
-        else walkInline(ch, div, ctx);
-      } else {
-        if (ch.localName === 'blip') appendImage(div, ctx, ch.getAttributeNS(R_NS, 'embed') || ch.getAttribute('r:embed'));
-        else walkInline(ch, div, ctx);
-      }
-    }
-  }
-
-  function renderPara(p, ctx) {
-    const div = document.createElement('div');
-    div.className = 'para';
-    Object.assign(div.style, paraStyle(p));
-    walkInline(p, div, ctx);
-    if (!div.childNodes.length) div.innerHTML = '<br>'; // ย่อหน้าว่าง = เว้นบรรทัด (คงจังหวะหน้า)
-    return div;
-  }
-
-  function renderTable(tbl, ctx) {
-    const table = document.createElement('table');
-    table.className = 'doctable';
-    for (const tr of kids(tbl, 'tr')) {
-      const row = table.insertRow();
-      for (const tc of kids(tr, 'tc')) {
-        const td = row.insertCell();
-        const span = kid(kid(tc, 'tcPr') || tc, 'gridSpan');
-        if (span && wval(span)) td.colSpan = parseInt(wval(span));
-        renderBlocks(td, tc, ctx);
-      }
-    }
-    return table;
-  }
-
-  function renderBlocks(container, el, ctx) {
-    for (const ch of el.children) {
-      if (ch.namespaceURI !== W_NS) continue;
-      if (ch.localName === 'p') container.appendChild(renderPara(ch, ctx));
-      else if (ch.localName === 'tbl') container.appendChild(renderTable(ch, ctx));
-      else if (ch.localName === 'sdt') { const c = kid(ch, 'sdtContent'); if (c) renderBlocks(container, c, ctx); }
-    }
-  }
-
-  function renderDocView() {
-    const ed = $('#wordEditor');
-    ed.innerHTML = '';
-    let any = false;
-    for (const part of doc.parts) {
-      const isMain = part.path === 'word/document.xml';
-      const root = isMain ? part.dom.getElementsByTagNameNS(W_NS, 'body')[0] : part.dom.documentElement;
-      if (!root) continue;
-      const ctx = { part, idxMap: new Map(part.tNodes.map((n, i) => [n, i])), images: doc.images[part.path] || {} };
-      if (!isMain) {
-        const lbl = document.createElement('div');
-        lbl.className = 'partlabel';
-        lbl.textContent = partLabel(part.path);
-        ed.appendChild(lbl);
-      }
-      const sec = document.createElement('div');
-      sec.className = 'docsection ' + (isMain ? 'main' : 'aux');
-      renderBlocks(sec, root, ctx);
-      ed.appendChild(sec);
-      any = any || sec.childNodes.length > 0;
-    }
-    if (!any) ed.innerHTML = '<div class="msg">ไม่พบข้อความที่แก้ได้ในไฟล์นี้</div>';
-  }
-
-  function editedCount() {
-    let c = 0;
-    for (const part of doc.parts) part.tNodes.forEach((n, i) => { if (n.textContent !== part.orig[i]) c++; });
-    return c;
-  }
-  function updateEditCount() {
-    const c = editedCount(), el = $('#editCount');
-    el.textContent = 'แก้แล้ว ' + c + ' จุด';
-    el.classList.toggle('on', c > 0);
-  }
-
-  // ---------- find & replace ----------
-  function replaceAll() {
-    if (!doc) return;
-    const find = $('#findText').value, repl = $('#replText').value;
-    if (!find) { setMsg($('#wordMsg'), 'พิมพ์คำที่จะค้นหาก่อน', 'err'); return; }
-    let count = 0, cross = 0;
-    for (const part of doc.parts) {
-      for (const t of part.tNodes) {
-        if (t.textContent.includes(find)) {
-          count += t.textContent.split(find).length - 1;
-          t.textContent = t.textContent.split(find).join(repl);
-          part.dirty = true;
-        }
-      }
-      for (const p of [...part.dom.getElementsByTagNameNS(W_NS, 'p')]) {
-        const txt = [...p.getElementsByTagNameNS(W_NS, 't')].map(t => t.textContent).join('');
-        if (txt.includes(find)) cross++;
-      }
-    }
-    renderDocView();
-    updateEditCount();
-    setMsg($('#wordMsg'),
-      `แทนที่แล้ว ${count} จุด` +
-      (cross ? ` · มีอีก ${cross} ย่อหน้าที่คำนี้ถูกแบ่งคร่อมรูปแบบ ต้องคลิกแก้เองในหน้าเอกสาร` : ''),
-      cross ? 'err' : 'ok');
-  }
-
   // ---------- build ----------
   async function buildDocx() {
     for (const part of doc.parts) {
-      if (!part.dirty) continue;
+      if (!part.dirty) continue; // ส่วนที่ไม่ได้แก้ = เก็บ byte เดิมไว้ทั้งไฟล์
       for (const t of [...part.dom.getElementsByTagNameNS(W_NS, 't')])
         if (/^\s|\s$/.test(t.textContent)) t.setAttributeNS(XML_NS, 'xml:space', 'preserve');
       let xml = new XMLSerializer().serializeToString(part.dom);
@@ -329,11 +89,125 @@
     });
   }
 
-  async function renderPreview(blob) {
-    const cont = $('#wordPreview');
-    cont.innerHTML = '<div class="msg">กำลังสร้างตัวอย่าง...</div>';
-    try { await window.docx.renderAsync(blob, cont, null, { inWrapper: true }); }
-    catch (e) { cont.innerHTML = '<div class="msg err">แสดงตัวอย่างไม่ได้ (ไม่กระทบไฟล์จริง): ' + e.message + '</div>'; }
+  // ---------- mapping: tid -> (part, idx) ----------
+  // __dxTexts คือรายการข้อความตามลำดับที่ตัววาด "อ่านจากไฟล์จริง" — แต่ละ part ของเรา
+  // ต้องปรากฏเป็นช่วงต่อเนื่องในนั้น (ข้อความเหมือนกันตัวต่อตัว) จับคู่แบบไม่ทับซ้อน
+  function computeTidMap(dxTexts) {
+    const map = new Array(dxTexts.length).fill(null);
+    const claimed = new Array(dxTexts.length).fill(false);
+    const partsSorted = [...doc.parts].sort((a, b) => b.tNodes.length - a.tNodes.length);
+    for (const part of partsSorted) {
+      const seq = part.tNodes.map(t => t.textContent);
+      if (!seq.length) continue;
+      let found = -1;
+      for (let i = 0; i + seq.length <= dxTexts.length; i++) {
+        let ok = true;
+        for (let j = 0; j < seq.length; j++) {
+          if (claimed[i + j] || dxTexts[i + j] !== seq[j]) { ok = false; break; }
+        }
+        if (ok) { found = i; break; }
+      }
+      if (found < 0) continue; // part นี้จับคู่ไม่ได้ → span ของมันจะถูกล็อก
+      for (let j = 0; j < seq.length; j++) {
+        claimed[found + j] = true;
+        map[found + j] = { part, idx: j };
+      }
+    }
+    return map;
+  }
+
+  // ---------- render (single exact view, editable) ----------
+  async function renderView() {
+    const cont = $('#wordCanvas');
+    cont.innerHTML = '<div class="msg" style="padding:14px">กำลังวาดเอกสาร...</div>';
+    window.__dxTexts = [];
+    const blob = await buildDocx();
+    cont.innerHTML = '';
+    await window.docx.renderAsync(blob, cont, null, { inWrapper: true });
+    tidMap = computeTidMap(window.__dxTexts);
+    window.__dxTexts = null; // ปิด log ระหว่างที่ไม่ได้ render
+    wireSpans(cont);
+  }
+
+  function wireSpans(cont) {
+    tidSpans = new Map();
+    let editable = 0, locked = 0;
+    for (const span of [...cont.getElementsByClassName('dx-t')]) {
+      const tid = span.__dxTid;
+      const m = (tid !== undefined) ? tidMap[tid] : null;
+      // ด่านตรวจ: ข้อความบนจอต้องตรงกับในไฟล์เป๊ะ + ไม่ใช่โซนล็อก ถึงจะเปิดให้แก้
+      if (!m || span.textContent !== m.part.tNodes[m.idx].textContent ||
+          m.part.locked.has(m.part.tNodes[m.idx])) {
+        if (span.textContent.trim() !== '') locked++;
+        continue;
+      }
+      editable++;
+      if (!tidSpans.has(tid)) tidSpans.set(tid, []);
+      tidSpans.get(tid).push(span);
+      span.contentEditable = 'true';
+      span.spellcheck = false;
+      span.classList.toggle('edited', m.part.tNodes[m.idx].textContent !== m.part.orig[m.idx]);
+      span.addEventListener('keydown', e => {
+        if (e.key === 'Enter') e.preventDefault();
+        if ((e.metaKey || e.ctrlKey) && ['b', 'i', 'u'].includes(e.key.toLowerCase())) e.preventDefault();
+      });
+      span.addEventListener('input', () => {
+        const txt = span.textContent.replace(/[\r\n]+/g, ' ');
+        m.part.tNodes[m.idx].textContent = txt;
+        m.part.dirty = true;
+        const changed = txt !== m.part.orig[m.idx];
+        for (const s of tidSpans.get(tid)) {         // header/footer โผล่หลายหน้า → sync กัน
+          if (s !== span) s.textContent = txt;
+          s.classList.toggle('edited', changed);
+        }
+        updateEditCount();
+      });
+      span.addEventListener('blur', () => {
+        if (span.children.length) span.textContent = m.part.tNodes[m.idx].textContent;
+      });
+    }
+    if (locked > 0)
+      setMsg($('#wordMsg'), `พร้อมแก้ไข ${editable} จุด · มี ${locked} จุดที่ระบบล็อกไว้ (จับคู่กับไฟล์ไม่ได้ จึงไม่เปิดให้แก้เพื่อความปลอดภัยของไฟล์)`, '');
+    window.__wireStats = { editable, locked };
+  }
+
+  function editedCount() {
+    let c = 0;
+    for (const part of doc.parts) part.tNodes.forEach((n, i) => { if (n.textContent !== part.orig[i]) c++; });
+    return c;
+  }
+  function updateEditCount() {
+    const c = editedCount(), el = $('#editCount');
+    el.textContent = 'แก้แล้ว ' + c + ' จุด';
+    el.classList.toggle('on', c > 0);
+  }
+
+  // ---------- find & replace ----------
+  async function replaceAll() {
+    if (!doc) return;
+    const find = $('#findText').value, repl = $('#replText').value;
+    if (!find) { setMsg($('#wordMsg'), 'พิมพ์คำที่จะค้นหาก่อน', 'err'); return; }
+    let count = 0, cross = 0;
+    for (const part of doc.parts) {
+      for (const t of part.tNodes) {
+        if (part.locked.has(t)) continue; // โซนกล่องลอยมี 2 สำเนา — ไม่แตะ
+        if (t.textContent.includes(find)) {
+          count += t.textContent.split(find).length - 1;
+          t.textContent = t.textContent.split(find).join(repl);
+          part.dirty = true;
+        }
+      }
+      for (const p of [...part.dom.getElementsByTagNameNS(W_NS, 'p')]) {
+        const txt = [...p.getElementsByTagNameNS(W_NS, 't')].map(t => t.textContent).join('');
+        if (txt.includes(find)) cross++;
+      }
+    }
+    await renderView();
+    updateEditCount();
+    setMsg($('#wordMsg'),
+      `แทนที่แล้ว ${count} จุด` +
+      (cross ? ` · มีอีก ${cross} ย่อหน้าที่คำนี้ถูกแบ่งคร่อมรูปแบบ ต้องคลิกแก้เองในหน้าเอกสาร` : ''),
+      cross ? 'err' : 'ok');
   }
 
   // ---------- wiring ----------
@@ -344,17 +218,10 @@
   });
   $('#pickDocx').addEventListener('click', () => $('#fileDocx').click());
   $('#btnReplace').addEventListener('click', replaceAll);
-  $('#btnExact').addEventListener('click', async () => {
+  $('#btnRepage').addEventListener('click', async () => {
     if (!doc) return;
-    const pane = $('#exactPane');
-    if (pane.classList.contains('hidden')) {
-      pane.classList.remove('hidden');
-      $('#btnExact').textContent = '🔍 ซ่อนตัวอย่างเป๊ะ';
-      renderPreview(await buildDocx());
-    } else {
-      pane.classList.add('hidden');
-      $('#btnExact').textContent = '🔍 ตัวอย่างเป๊ะ';
-    }
+    await renderView();
+    setMsg($('#wordMsg'), 'จัดหน้าใหม่แล้ว', 'ok');
   });
   $('#btnDownload').addEventListener('click', async () => {
     if (!doc) return;
@@ -363,9 +230,7 @@
   });
   $('#btnCloseDoc').addEventListener('click', () => {
     doc = null;
-    $('#wordEditor').innerHTML = '';
-    $('#wordPreview').innerHTML = '';
-    $('#exactPane').classList.add('hidden');
+    $('#wordCanvas').innerHTML = '';
     $('#wordWork').classList.add('hidden');
     $('#wordStart').classList.remove('hidden');
   });
