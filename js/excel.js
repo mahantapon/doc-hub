@@ -3,13 +3,20 @@
 (() => {
   const LS_CID = 'dochub_client_id';
   const LS_KEY = 'dochub_api_key';
+  // ค่ากลางของบริษัท (โปรเจ็กต์ doc-hub-503212, consent แบบ Internal @ruanganan.com)
+  // เป็นค่าเปิดเผยได้ตามธรรมชาติของเว็บแอป — ถูกจำกัดโดเมน + จำกัดองค์กรแล้ว
+  const DEFAULT_CID = '859658791030-7fmo965td9vngfei37di9u8gjpitqbp7.apps.googleusercontent.com';
+  const DEFAULT_KEY = 'AIzaSyAy0wndU_wr5RZf-TpW5NB0p510nlEnNVE';
   const SCOPE = 'https://www.googleapis.com/auth/drive.file';
   const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
   const GSHEET_MIME = 'application/vnd.google-apps.spreadsheet';
 
   let accessToken = null, tokenExp = 0, tokenClient = null, pickerReady = false;
 
-  const cfg = () => ({ cid: localStorage.getItem(LS_CID) || '', key: localStorage.getItem(LS_KEY) || '' });
+  const cfg = () => ({
+    cid: localStorage.getItem(LS_CID) || DEFAULT_CID,
+    key: localStorage.getItem(LS_KEY) || DEFAULT_KEY
+  });
   const esc = s => String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
 
   // ---------- config ----------
@@ -18,7 +25,7 @@
     const c = cfg();
     bar.className = c.cid && c.key ? 'cfgbar ok' : 'cfgbar';
     bar.innerHTML = c.cid && c.key
-      ? '✅ เชื่อม Google Drive แล้ว — ใช้งานได้เลย (ครั้งแรกจะมีหน้าต่างล็อกอิน Google เด้งขึ้นมา) '
+      ? '✅ พร้อมใช้งาน — ครั้งแรกจะมีหน้าต่างล็อกอิน Google เด้งขึ้นมา (ใช้บัญชี @ruanganan.com) '
       : '⚠️ แท็บนี้ต้องตั้งค่าเชื่อม Google Drive ก่อน (ทำครั้งเดียว ~5 นาที ดูขั้นตอนใน SETUP.md) ';
     const b = document.createElement('button');
     b.className = 'btn';
