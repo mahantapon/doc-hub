@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Doc Hub — เรืองอนันต์</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">📄</span>
+    <div>
+      <h1>Doc Hub</h1>
+      <p>ศูนย์แปลง/แก้เอกสาร Mango ⇄ Google — เรืองอนันต์</p>
+    </div>
+  </div>
+</header>
+
+<nav class="tabs">
+  <button class="tab active" data-tab="excel">📊 แปลง Excel ⇄ Sheet</button>
+  <button class="tab" data-tab="boq">📤 ส่ง BOQ ให้ช่าง</button>
+  <button class="tab" data-tab="word">📝 แก้ Word (100%)</button>
+  <button class="tab" data-tab="sop">📖 วิธีใช้ / กติกา</button>
+</nav>
+
+<main>
+
+<!-- ============ TAB 1 : EXCEL ============ -->
+<section id="tab-excel" class="panel active">
+  <div id="excelCfgBar" class="cfgbar"></div>
+  <div class="grid2">
+    <div class="card">
+      <h2>⬆️ แปลงเข้า: Excel → Google Sheet</h2>
+      <p class="hint">ลากไฟล์ .xlsx จาก Mango มาวางได้ทีละหลายไฟล์ (ทั้งชุด QCM/PPN 100+ ไฟล์ก็ได้) ระบบจะแปลงเป็น Google Sheet ให้อัตโนมัติ</p>
+      <label class="fld">โฟลเดอร์ปลายทางใน Drive:
+        <input id="folderName" value="DocHub Import" autocomplete="off">
+      </label>
+      <div id="dropXlsx" class="dropzone">
+        วางไฟล์ .xlsx ที่นี่ หรือ
+        <button id="pickXlsx" class="btn">เลือกไฟล์</button>
+        <input type="file" id="fileXlsx" multiple accept=".xlsx,.xls,.xlsm" hidden>
+      </div>
+      <div id="importResults" class="results"></div>
+    </div>
+    <div class="card">
+      <h2>⬇️ ส่งออก: Google Sheet → Excel</h2>
+      <p class="hint">เลือก Sheet จาก Drive ได้ทีละหลายไฟล์ ระบบจะดาวน์โหลดกลับเป็น .xlsx เพื่อส่งเข้า Mango (หลายไฟล์จะรวมเป็น .zip ให้)</p>
+      <button id="btnPickSheets" class="btn primary">📂 เลือก Sheet จาก Drive</button>
+      <div id="exportResults" class="results"></div>
+      <div class="tip">💡 วิธีสำรองไม่ต้องตั้งค่า: เลือกหลายไฟล์ใน Drive → คลิกขวา → ดาวน์โหลด — Google จะแปลงเป็น .xlsx ให้อัตโนมัติ</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TAB 2 : BOQ ============ -->
+<section id="tab-boq" class="panel">
+  <div class="card narrow">
+    <h2>📤 ส่ง BOQ ให้ผู้รับเหมาเป็น "ไฟล์" ไม่ใช่ลิงก์</h2>
+    <p class="hint">วางลิงก์ Google Sheet ของ BOQ แล้วกดปุ่ม — ได้ไฟล์จริงส่งไลน์ให้ช่างได้เลย ช่างไม่ต้องเปิดลิงก์ ไม่ต้องมีบัญชี Google</p>
+    <input id="boqLink" placeholder="วางลิงก์ https://docs.google.com/spreadsheets/d/..." autocomplete="off">
+    <div class="btnrow">
+      <button id="boqXlsx" class="btn primary">⬇️ โหลดเป็น Excel (.xlsx)</button>
+      <button id="boqPdf" class="btn">⬇️ โหลดเป็น PDF</button>
+    </div>
+    <div id="boqMsg" class="msg"></div>
+    <div class="tip">💡 ไฟล์จะใช้ชื่อเดียวกับชื่อไฟล์ Google Sheet · ปุ่มนี้ใช้สิทธิ์บัญชี Google ที่ล็อกอินอยู่ในเบราว์เซอร์ของเราเอง จึงโหลดได้แม้ไฟล์ไม่ได้เปิดแชร์สาธารณะ</div>
+  </div>
+</section>
+
+<!-- ============ TAB 3 : WORD ============ -->
+<section id="tab-word" class="panel">
+  <div class="card" id="wordStart">
+    <h2>📝 แก้ Word แบบ Format ไม่เพี้ยน 100%</h2>
+    <p class="hint">เปิดไฟล์ .docx อะไรก็ได้ → แก้ข้อความ → ดาวน์โหลดกลับ ฟอนต์ / การจัดหน้า / ตาราง / หัวกระดาษ เหมือนเดิมทุกจุด
+    เพราะระบบผ่าตัดแก้เฉพาะ "ตัวอักษร" ในไฟล์เดิม <b>ไม่มีขั้นตอนแปลงไฟล์เลย</b></p>
+    <div id="dropDocx" class="dropzone">
+      วางไฟล์ .docx ที่นี่ หรือ
+      <button id="pickDocx" class="btn">เลือกไฟล์</button>
+      <input type="file" id="fileDocx" accept=".docx" hidden>
+    </div>
+    <div id="wordOpenMsg" class="msg"></div>
+  </div>
+  <div id="wordWork" class="hidden">
+    <div class="toolbar card">
+      <span id="wordFileName" class="fname"></span>
+      <span id="editCount" class="badge">แก้แล้ว 0 จุด</span>
+      <span class="spacer"></span>
+      <input id="findText" placeholder="ค้นหา..." autocomplete="off">
+      <input id="replText" placeholder="แทนที่ด้วย..." autocomplete="off">
+      <button id="btnReplace" class="btn">แทนที่ทั้งหมด</button>
+      <button id="btnRefresh" class="btn">🔄 รีเฟรชตัวอย่าง</button>
+      <button id="btnDownload" class="btn primary">⬇️ ดาวน์โหลด .docx</button>
+      <button id="btnCloseDoc" class="btn ghost">✖ ปิดไฟล์</button>
+    </div>
+    <div id="wordMsg" class="msg"></div>
+    <div class="split">
+      <div class="editcol">
+        <div class="pvhead">แก้ข้อความได้ที่นี่ (คลิกที่ตัวหนังสือแล้วพิมพ์แก้ได้เลย)</div>
+        <div id="wordEditor" class="editor"></div>
+      </div>
+      <div class="pvcol">
+        <div class="pvhead">ตัวอย่างเอกสาร (การแสดงผลโดยประมาณ — ตัวไฟล์จริงคงเดิม 100%)</div>
+        <div id="wordPreview"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TAB 4 : SOP ============ -->
+<section id="tab-sop" class="panel">
+  <div class="card narrow sop">
+    <h2>📖 กติกาการใช้เอกสาร (SOP)</h2>
+
+    <h3>🟩 ไฟล์ Excel checklist / template จาก Mango (QCM, PPN)</h3>
+    <ul>
+      <li>ใช้แท็บ <b>แปลง Excel ⇄ Sheet</b> แปลงเข้าเป็น Google Sheet ทีเดียวทั้งชุด แก้เสร็จส่งออกกลับเป็น .xlsx เข้า Mango</li>
+    </ul>
+
+    <h3>🟥 ไฟล์ Excel ที่มีสูตรซับซ้อน / macro</h3>
+    <ul>
+      <li><b>ห้ามแปลงเป็น Google Sheet</b> — สูตรจะหาย/เพี้ยน (เป็นข้อจำกัดของ Google เอง แก้ไม่ได้)</li>
+      <li>ให้แก้เป็นไฟล์ .xlsx ตรง ๆ: ดับเบิลคลิกไฟล์ใน Drive แก้ได้เลย ไฟล์ยังเป็น Excel เหมือนเดิม (อย่ากด "บันทึกเป็น Google ชีต")</li>
+    </ul>
+
+    <h3>🟦 ไฟล์ Word ทุกชนิด (สัญญา, เอกสารภายนอก)</h3>
+    <ul>
+      <li><b>ห้ามแปลงเป็น Google Docs เด็ดขาด</b> — ฟอนต์ไทยกับการจัดหน้าจะเพี้ยนเสมอ (Google Docs ไม่มีฟอนต์ TH Sarabun New)</li>
+      <li>แก้ข้อความ (ชื่อ วันที่ เลขที่ จำนวนเงิน) → ใช้แท็บ <b>แก้ Word (100%)</b> ของเว็บนี้</li>
+      <li>แก้หนัก รื้อโครงเอกสาร → ใช้ Word Online ฟรีที่ <a href="https://office.com" target="_blank" rel="noopener">office.com</a> (สมัครบัญชี Microsoft ฟรี) หรือ Word ในเครื่อง</li>
+    </ul>
+
+    <h3>🟨 ส่งเอกสารให้คนนอกองค์กร (ผู้รับเหมา / ช่าง)</h3>
+    <ul>
+      <li>ส่งเป็น <b>"ไฟล์"</b> เสมอ อย่าส่งลิงก์ — ช่างเปิดไฟล์ได้ทันที ไม่ติดสิทธิ์ ไม่ต้องมีบัญชี Google</li>
+      <li>BOQ → ใช้แท็บ <b>ส่ง BOQ ให้ช่าง</b> · เอกสาร Word → แก้เสร็จจากแท็บแก้ Word แล้วส่งไฟล์นั้นได้เลย</li>
+    </ul>
+
+    <h3>💡 ทำไมต้องมีกติกานี้</h3>
+    <p>ทุกครั้งที่ไฟล์ถูก "แปลงข้ามระบบ" (Excel→Sheet, Word→Docs) จะมีข้อมูลสูญหายเสมอ ไม่มีเครื่องมือไหนแก้ได้ 100%
+    หลักการของ Doc Hub คือ <b>จุดไหนแปลงแล้วเสียหายน้อยให้แปลงแบบอัตโนมัติ (checklist) — จุดไหนแปลงแล้วพัง ให้เลี่ยงการแปลงโดยสิ้นเชิง (สูตรซับซ้อน, Word)</b></p>
+  </div>
+</section>
+
+</main>
+
+<footer>เรืองอนันต์ · Doc Hub v1 · ทำงานในเบราว์เซอร์ทั้งหมด ไฟล์ไม่ถูกอัปโหลดไปเซิร์ฟเวอร์อื่น</footer>
+
+<!-- config dialog -->
+<dialog id="cfgDialog">
+  <h3>⚙️ ตั้งค่าการเชื่อม Google Drive</h3>
+  <p class="hint">ใช้กับแท็บ "แปลง Excel ⇄ Sheet" เท่านั้น (ตั้งครั้งเดียว) — ดูขั้นตอนสร้างใน <b>SETUP.md</b> ของ repo</p>
+  <label class="fld">OAuth Client ID
+    <input id="cfgClientId" placeholder="xxxx.apps.googleusercontent.com" autocomplete="off">
+  </label>
+  <label class="fld">API Key (สำหรับหน้าต่างเลือกไฟล์)
+    <input id="cfgApiKey" placeholder="AIza..." autocomplete="off">
+  </label>
+  <div class="btnrow">
+    <button id="cfgSave" class="btn primary">บันทึก</button>
+    <button id="cfgCancel" class="btn ghost">ยกเลิก</button>
+  </div>
+</dialog>
+
+<script src="vendor/jszip.min.js"></script>
+<script src="vendor/docx-preview.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://apis.google.com/js/api.js" async defer></script>
+<script src="js/app.js"></script>
+<script src="js/excel.js"></script>
+<script src="js/boq.js"></script>
+<script src="js/word.js"></script>
+</body>
+</html>
