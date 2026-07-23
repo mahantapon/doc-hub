@@ -47,6 +47,7 @@
   $('#cfgCancel').addEventListener('click', () => $('#cfgDialog').close());
 
   // ---------- auth ----------
+  let tokenReject = null;
   function ensureToken() {
     return new Promise((resolve, reject) => {
       const c = cfg();
@@ -55,8 +56,18 @@
       if (!window.google || !google.accounts || !google.accounts.oauth2)
         return reject(new Error('สคริปต์ Google ยังโหลดไม่เสร็จ — รอ 2-3 วินาทีแล้วลองใหม่'));
       if (!tokenClient)
-        tokenClient = google.accounts.oauth2.initTokenClient({ client_id: c.cid, scope: SCOPE, callback: () => {} });
+        tokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: c.cid, scope: SCOPE, callback: () => {},
+          error_callback: e => {
+            const fn = tokenReject; tokenReject = null;
+            if (fn) fn(new Error(e && e.type === 'popup_failed_to_open'
+              ? 'เบราว์เซอร์บล็อกหน้าต่างล็อกอิน — กดไอคอน pop-up ขวาบนของช่องที่อยู่ เลือก "อนุญาต" แล้วลองใหม่'
+              : 'ล็อกอินไม่สำเร็จ: ' + (e && (e.message || e.type) || 'unknown')));
+          }
+        });
+      tokenReject = reject;
       tokenClient.callback = resp => {
+        tokenReject = null;
         if (resp.error) return reject(new Error('ล็อกอินไม่สำเร็จ: ' + resp.error));
         accessToken = resp.access_token;
         tokenExp = Date.now() + (resp.expires_in || 3600) * 1000;
@@ -110,7 +121,9 @@
     let folderId;
     try {
       await ensureToken();
-      folderId = await ensureFolder($('#folderName').value.trim() || 'DocHub Import');
+      // ถ้าเลือกโฟลเดอร์จาก Drive/Shared Drive แล้ว ใช้อันนั้น — ไม่งั้นสร้างตามชื่อใน My Drive
+      folderId = destFolder ? destFolder.id
+        : await ensureFolder($('#folderName').value.trim() || 'DocHub Import');
     } catch (e) { resultRow(cont, 'เชื่อม Drive').fail(esc(e.message)); return; }
     for (const f of files) {
       const row = resultRow(cont, esc(f.name));
@@ -127,7 +140,7 @@
           f,
           `\r\n--${boundary}--`
         ]);
-        const res = await api('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink', {
+        const res = await api('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id,webViewLink', {
           method: 'POST',
           headers: { 'Content-Type': `multipart/related; boundary=${boundary}` },
           body
@@ -157,15 +170,26 @@
       await loadPicker();
       const c = cfg();
       if (!c.key) throw new Error('ยังไม่ได้ใส่ API Key — กดปุ่ม ⚙️ ตั้งค่า');
+      // มุมมองหลัก: ไฟล์ Sheet ทั้งหมด (My Drive + Shared Drives)
       const view = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS)
         .setIncludeFolders(true)
+        .setEnableDrives(true)
+        .setMode(google.picker.DocsViewMode.LIST);
+      // มุมมองที่สอง: เจาะ Shared Drives โดยตรง
+      const driveView = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS)
+        .setEnableDrives(true)
+        .setIncludeFolders(true)
+        .setOwnedByMe(false)
+        .setLabel('Shared Drives')
         .setMode(google.picker.DocsViewMode.LIST);
       new google.picker.PickerBuilder()
         .addView(view)
+        .addView(driveView)
         .setOAuthToken(token)
         .setDeveloperKey(c.key)
         .setAppId(c.cid.split('-')[0])
         .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
+        .enableFeature(google.picker.Feature.SUPPORT_DRIVES)
         .setCallback(data => {
           if (data[google.picker.Response.ACTION] === google.picker.Action.PICKED)
             exportSheets(data[google.picker.Response.DOCUMENTS]);
@@ -173,6 +197,50 @@
         .build()
         .setVisible(true);
     } catch (e) { resultRow(cont, 'เลือกไฟล์จาก Drive').fail(esc(e.message)); }
+  }
+
+  // ---------- destination folder picker (รองรับ Shared Drives) ----------
+  let destFolder = null; // { id, name }
+  function renderDest() {
+    const el = $('#destLabel');
+    if (destFolder) {
+      el.innerHTML = `📁 <b>${esc(destFolder.name)}</b> <button id="clearDest" class="btn ghost" style="padding:2px 8px">✖</button>`;
+      $('#clearDest').addEventListener('click', () => { destFolder = null; renderDest(); });
+      $('#folderName').disabled = true;
+    } else {
+      el.textContent = '';
+      $('#folderName').disabled = false;
+    }
+  }
+
+  async function pickFolder() {
+    const cont = $('#importResults');
+    try {
+      const token = await ensureToken();
+      await loadPicker();
+      const c = cfg();
+      const view = new google.picker.DocsView(google.picker.ViewId.FOLDERS)
+        .setSelectFolderEnabled(true)
+        .setIncludeFolders(true)
+        .setEnableDrives(true)
+        .setMode(google.picker.DocsViewMode.LIST);
+      new google.picker.PickerBuilder()
+        .addView(view)
+        .setOAuthToken(token)
+        .setDeveloperKey(c.key)
+        .setAppId(c.cid.split('-')[0])
+        .enableFeature(google.picker.Feature.SUPPORT_DRIVES)
+        .setTitle('เลือกโฟลเดอร์ปลายทาง (My Drive หรือ Shared Drive)')
+        .setCallback(data => {
+          if (data[google.picker.Response.ACTION] === google.picker.Action.PICKED) {
+            const d = data[google.picker.Response.DOCUMENTS][0];
+            destFolder = { id: d.id, name: d.name };
+            renderDest();
+          }
+        })
+        .build()
+        .setVisible(true);
+    } catch (e) { resultRow(cont, 'เลือกโฟลเดอร์').fail(esc(e.message)); }
   }
 
   async function exportSheets(docs) {
@@ -201,4 +269,5 @@
   wireDropzone($('#dropXlsx'), $('#fileXlsx'), importFiles);
   $('#pickXlsx').addEventListener('click', () => $('#fileXlsx').click());
   $('#btnPickSheets').addEventListener('click', pickSheets);
+  $('#btnPickFolder').addEventListener('click', pickFolder);
 })();

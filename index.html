@@ -36,9 +36,13 @@
     <div class="card">
       <h2>⬆️ แปลงเข้า: Excel → Google Sheet</h2>
       <p class="hint">ลากไฟล์ .xlsx จากระบบ ERP มาวางได้ทีละหลายไฟล์ (ทั้งโฟลเดอร์หลายร้อยไฟล์ในคลิกเดียว) ระบบจะแปลงเป็น Google Sheet ให้อัตโนมัติ</p>
-      <label class="fld">โฟลเดอร์ปลายทางใน Drive:
-        <input id="folderName" value="DocHub Import" autocomplete="off">
-      </label>
+      <div class="fld">โฟลเดอร์ปลายทาง:
+        <div class="btnrow" style="margin:6px 0 2px">
+          <button id="btnPickFolder" class="btn">📁 เลือกโฟลเดอร์ (My Drive / Shared Drive)</button>
+          <span id="destLabel"></span>
+        </div>
+        <input id="folderName" value="DocHub Import" autocomplete="off" title="ถ้าไม่เลือกโฟลเดอร์ ระบบจะสร้างโฟลเดอร์ชื่อนี้ใน My Drive">
+      </div>
       <div id="dropXlsx" class="dropzone">
         วางไฟล์ .xlsx ที่นี่ หรือ
         <button id="pickXlsx" class="btn">เลือกไฟล์</button>
