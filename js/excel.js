@@ -250,25 +250,84 @@
     } catch (e) { resultRow(cont, 'เลือกโฟลเดอร์').fail(esc(e.message)); }
   }
 
-  async function exportSheets(docs) {
+  async function exportSheets(docs, zipName) {
     const cont = $('#exportResults');
     const out = [];
+    let ok = 0, fail = 0;
     for (const d of docs) {
       const row = resultRow(cont, esc(d.name));
       try {
         const res = await api(
           `https://www.googleapis.com/drive/v3/files/${d.id}/export?mimeType=${encodeURIComponent(XLSX_MIME)}`);
         out.push({ name: d.name + '.xlsx', blob: await res.blob() });
-        row.ok();
-      } catch (e) { row.fail(esc(e.message)); }
+        row.ok(); ok++;
+      } catch (e) { row.fail(esc(e.message)); fail++; }
     }
     if (!out.length) return;
-    if (out.length === 1) downloadBlob(out[0].blob, out[0].name);
+    if (out.length === 1 && !zipName) downloadBlob(out[0].blob, out[0].name);
     else {
       const zip = new JSZip();
-      out.forEach(o => zip.file(o.name, o.blob));
-      downloadBlob(await zip.generateAsync({ type: 'blob' }), 'sheets-export.zip');
+      // กันชื่อซ้ำในโฟลเดอร์เดียวกัน
+      const seen = {};
+      out.forEach(o => {
+        let n = o.name;
+        if (seen[n]) n = o.name.replace(/\.xlsx$/i, ` (${seen[n]}).xlsx`);
+        seen[o.name] = (seen[o.name] || 0) + 1;
+        zip.file(n, o.blob);
+      });
+      downloadBlob(await zip.generateAsync({ type: 'blob' }), zipName || 'sheets-export.zip');
     }
+    if (fail) resultRow(cont, `สรุป: สำเร็จ ${ok} · พลาด ${fail}`).fail('ไฟล์ที่พลาดดูสาเหตุด้านบน');
+  }
+
+  // ---------- list all Google Sheets inside a folder (paginated, all drives) ----------
+  async function listSheetsInFolder(folderId) {
+    const files = [];
+    let pageToken = '';
+    do {
+      const q = encodeURIComponent(
+        `'${folderId}' in parents and mimeType='${GSHEET_MIME}' and trashed=false`);
+      const url = 'https://www.googleapis.com/drive/v3/files?' +
+        `q=${q}&fields=nextPageToken,files(id,name)&pageSize=1000` +
+        '&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=allDrives' +
+        (pageToken ? `&pageToken=${pageToken}` : '');
+      const j = await (await api(url)).json();
+      files.push(...(j.files || []));
+      pageToken = j.nextPageToken || '';
+    } while (pageToken);
+    return files;
+  }
+
+  async function pickExportFolder() {
+    const cont = $('#exportResults');
+    try {
+      const token = await ensureToken();
+      await loadPicker();
+      const c = cfg();
+      const view = new google.picker.DocsView(google.picker.ViewId.FOLDERS)
+        .setSelectFolderEnabled(true).setIncludeFolders(true)
+        .setLabel('My Drive').setMode(google.picker.DocsViewMode.LIST);
+      const driveView = new google.picker.DocsView(google.picker.ViewId.FOLDERS)
+        .setSelectFolderEnabled(true).setIncludeFolders(true).setEnableDrives(true)
+        .setLabel('Shared drives').setMode(google.picker.DocsViewMode.LIST);
+      new google.picker.PickerBuilder()
+        .addView(view).addView(driveView)
+        .setOAuthToken(token).setDeveloperKey(c.key).setAppId(c.cid.split('-')[0])
+        .enableFeature(google.picker.Feature.SUPPORT_DRIVES)
+        .setTitle('เลือกโฟลเดอร์ที่มี Sheet — จะแปลงทุกไฟล์ในนั้นเป็น Excel')
+        .setCallback(async data => {
+          if (data[google.picker.Response.ACTION] !== google.picker.Action.PICKED) return;
+          const folder = data[google.picker.Response.DOCUMENTS][0];
+          const head = resultRow(cont, `📁 ${esc(folder.name)} — กำลังค้นหา Sheet...`);
+          try {
+            const sheets = await listSheetsInFolder(folder.id);
+            if (!sheets.length) { head.fail('ไม่พบ Google Sheet ในโฟลเดอร์นี้ (จะแปลงเฉพาะไฟล์ที่เป็น Google ชีต)'); return; }
+            head.ok(`พบ ${sheets.length} ไฟล์ — กำลังแปลง`);
+            await exportSheets(sheets, `${folder.name}.zip`);
+          } catch (e) { head.fail(esc(e.message)); }
+        })
+        .build().setVisible(true);
+    } catch (e) { resultRow(cont, 'เลือกโฟลเดอร์').fail(esc(e.message)); }
   }
 
   // ---------- wiring ----------
@@ -277,4 +336,5 @@
   $('#pickXlsx').addEventListener('click', () => $('#fileXlsx').click());
   $('#btnPickSheets').addEventListener('click', pickSheets);
   $('#btnPickFolder').addEventListener('click', pickFolder);
+  $('#btnExportFolder').addEventListener('click', pickExportFolder);
 })();

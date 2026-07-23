@@ -52,8 +52,12 @@
     </div>
     <div class="card">
       <h2>⬇️ ส่งออก: Google Sheet → Excel</h2>
-      <p class="hint">เลือก Sheet จาก Drive ได้ทีละหลายไฟล์ ระบบจะดาวน์โหลดกลับเป็น .xlsx เพื่อส่งเข้า Mango (หลายไฟล์จะรวมเป็น .zip ให้)</p>
-      <button id="btnPickSheets" class="btn primary">📂 เลือก Sheet จาก Drive</button>
+      <p class="hint">แปลง Google Sheet กลับเป็น .xlsx เพื่อส่งเข้า Mango — หลายไฟล์จะรวมเป็น .zip ให้อัตโนมัติ</p>
+      <div class="btnrow">
+        <button id="btnExportFolder" class="btn primary">📁 แปลงทั้งโฟลเดอร์</button>
+        <button id="btnPickSheets" class="btn">📄 เลือกทีละไฟล์</button>
+      </div>
+      <p class="hint" style="margin:2px 0 8px">💡 <b>แปลงทั้งโฟลเดอร์</b> = เลือกโฟลเดอร์เดียว ระบบดึง Sheet ทุกอันในนั้นมาแปลงให้หมดในคลิกเดียว (เหมาะกับงานหลายไฟล์)</p>
       <div id="exportResults" class="results"></div>
       <div class="tip">💡 วิธีสำรองไม่ต้องตั้งค่า: เลือกหลายไฟล์ใน Drive → คลิกขวา → ดาวน์โหลด — Google จะแปลงเป็น .xlsx ให้อัตโนมัติ</div>
     </div>
