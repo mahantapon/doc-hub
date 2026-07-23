@@ -173,11 +173,13 @@
       // แท็บแรก: My Drive ส่วนตัว + ไฟล์ที่แชร์มาให้ (ห้ามใส่ setEnableDrives ไม่งั้นกลายเป็น Shared Drive)
       const view = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS)
         .setIncludeFolders(true)
+        .setLabel('My Drive')
         .setMode(google.picker.DocsViewMode.LIST);
       // แท็บสอง: Shared Drives ของบริษัท
       const driveView = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS)
         .setEnableDrives(true)
         .setIncludeFolders(true)
+        .setLabel('Shared drives')
         .setMode(google.picker.DocsViewMode.LIST);
       new google.picker.PickerBuilder()
         .addView(view)
@@ -220,11 +222,13 @@
       const view = new google.picker.DocsView(google.picker.ViewId.FOLDERS)
         .setSelectFolderEnabled(true)
         .setIncludeFolders(true)
+        .setLabel('My Drive')
         .setMode(google.picker.DocsViewMode.LIST);
       const driveFolderView = new google.picker.DocsView(google.picker.ViewId.FOLDERS)
         .setSelectFolderEnabled(true)
         .setIncludeFolders(true)
         .setEnableDrives(true)
+        .setLabel('Shared drives')
         .setMode(google.picker.DocsViewMode.LIST);
       new google.picker.PickerBuilder()
         .addView(view)
