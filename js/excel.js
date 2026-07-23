@@ -170,17 +170,14 @@
       await loadPicker();
       const c = cfg();
       if (!c.key) throw new Error('ยังไม่ได้ใส่ API Key — กดปุ่ม ⚙️ ตั้งค่า');
-      // มุมมองหลัก: ไฟล์ Sheet ทั้งหมด (My Drive + Shared Drives)
+      // แท็บแรก: My Drive ส่วนตัว + ไฟล์ที่แชร์มาให้ (ห้ามใส่ setEnableDrives ไม่งั้นกลายเป็น Shared Drive)
       const view = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS)
         .setIncludeFolders(true)
-        .setEnableDrives(true)
         .setMode(google.picker.DocsViewMode.LIST);
-      // มุมมองที่สอง: เจาะ Shared Drives โดยตรง
+      // แท็บสอง: Shared Drives ของบริษัท
       const driveView = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS)
         .setEnableDrives(true)
         .setIncludeFolders(true)
-        .setOwnedByMe(false)
-        .setLabel('Shared Drives')
         .setMode(google.picker.DocsViewMode.LIST);
       new google.picker.PickerBuilder()
         .addView(view)
@@ -219,13 +216,19 @@
       const token = await ensureToken();
       await loadPicker();
       const c = cfg();
+      // แท็บแรก: โฟลเดอร์ใน My Drive · แท็บสอง: โฟลเดอร์ใน Shared Drives
       const view = new google.picker.DocsView(google.picker.ViewId.FOLDERS)
+        .setSelectFolderEnabled(true)
+        .setIncludeFolders(true)
+        .setMode(google.picker.DocsViewMode.LIST);
+      const driveFolderView = new google.picker.DocsView(google.picker.ViewId.FOLDERS)
         .setSelectFolderEnabled(true)
         .setIncludeFolders(true)
         .setEnableDrives(true)
         .setMode(google.picker.DocsViewMode.LIST);
       new google.picker.PickerBuilder()
         .addView(view)
+        .addView(driveFolderView)
         .setOAuthToken(token)
         .setDeveloperKey(c.key)
         .setAppId(c.cid.split('-')[0])
