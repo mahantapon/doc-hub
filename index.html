@@ -24,6 +24,7 @@
   <button class="tab active" data-tab="excel">📊 แปลง Excel ⇄ Sheet</button>
   <button class="tab" data-tab="boq">📤 แปลง Sheet เป็นไฟล์</button>
   <button class="tab" data-tab="word">📝 แก้ Word (100%)</button>
+  <button class="tab" data-tab="font">🔤 เปลี่ยนฟอนต์เข้า Docs</button>
   <button class="tab" data-tab="sop">📖 วิธีใช้ / กติกา</button>
 </nav>
 
@@ -118,6 +119,36 @@
   </div>
 </section>
 
+<!-- ============ TAB : FONT REMAP ============ -->
+<section id="tab-font" class="panel">
+  <div class="card narrow">
+    <h2>🔤 เปลี่ยนฟอนต์ให้เข้ากับ Google Docs</h2>
+    <p class="hint">สาเหตุที่ Word เพี้ยนตอนเข้า Google Docs คือ <b>Google ไม่มีฟอนต์ TH SarabunPSK / Cordia New / Angsana</b> เลยสลับเป็นฟอนต์อื่น ตัวอักษรกว้างไม่เท่าเดิม บรรทัดเลยไหลใหม่ทั้งหน้า<br>
+    เครื่องมือนี้เปลี่ยนชื่อฟอนต์ในไฟล์เป็น <b>Sarabun</b> ซึ่ง <b>Google Docs มีจริง</b> และหน้าตาใกล้เคียง TH SarabunPSK มาก — พอฟอนต์ตรงกันทั้งสองฝั่ง ความเพี้ยนจะหายไปเกือบหมด</p>
+
+    <div class="grid2" style="gap:10px">
+      <label class="fld">เปลี่ยนเป็นฟอนต์:
+        <select id="fontTarget"></select>
+      </label>
+      <label class="fld" style="display:flex;align-items:flex-end;gap:8px;padding-bottom:9px">
+        <input type="checkbox" id="alsoLatin" style="width:auto;margin:0">
+        <span>เปลี่ยนฟอนต์ละตินด้วย (Calibri, Times New Roman ฯลฯ)</span>
+      </label>
+    </div>
+
+    <div id="dropFont" class="dropzone">
+      วางไฟล์ .docx ที่นี่ (ทีละหลายไฟล์ได้) หรือ
+      <button id="pickFont" class="btn">เลือกไฟล์</button>
+      <input type="file" id="fileFont" multiple accept=".docx" hidden>
+    </div>
+    <div id="fontResults" class="results"></div>
+
+    <div class="tip">💡 <b>ใช้ยังไง:</b> โยนไฟล์เข้ามา → ได้ไฟล์ใหม่ที่ลงท้าย <code>(Sarabun).docx</code> → เอาไฟล์นั้นเข้า Google Docs<br>
+    ✅ ไฟล์ต้นฉบับไม่ถูกแตะ · เปลี่ยนแค่ "ชื่อฟอนต์" ข้อความ/ตาราง/รูป/หัวกระดาษ อยู่ครบเหมือนเดิม<br>
+    ⚠️ ถ้าจะเปิดไฟล์นี้ใน Word ให้สวยด้วย ควร <a href="https://fonts.google.com/specimen/Sarabun" target="_blank" rel="noopener">ติดตั้งฟอนต์ Sarabun (ฟรี)</a> ในเครื่องก่อน</div>
+  </div>
+</section>
+
 <!-- ============ TAB 4 : SOP ============ -->
 <section id="tab-sop" class="panel">
   <div class="card narrow sop">
@@ -136,7 +167,9 @@
 
     <h3>🟦 ไฟล์ Word ทุกชนิด (สัญญา, เอกสารภายนอก)</h3>
     <ul>
-      <li><b>ห้ามแปลงเป็น Google Docs เด็ดขาด</b> — ฟอนต์ไทยกับการจัดหน้าจะเพี้ยนเสมอ (Google Docs ไม่มีฟอนต์ TH Sarabun New)</li>
+      <li><b>เลี่ยงการแปลงเป็น Google Docs</b> — ฟอนต์ไทยกับการจัดหน้าจะเพี้ยน (Google Docs ไม่มี TH SarabunPSK / Cordia New)</li>
+      <li>ถ้า<b>จำเป็นต้องใช้ Google Docs จริง ๆ</b> → เอาไฟล์ผ่านแท็บ <b>เปลี่ยนฟอนต์เข้า Docs</b> ก่อน (เปลี่ยนเป็น Sarabun ที่ Google มี) ความเพี้ยนจะลดลงมาก</li>
+      <li>ถ้าแค่ต้องการ<b>เก็บไฟล์ไว้ใน Drive</b> → อัปโหลด .docx ขึ้นไปตรง ๆ ได้เลย ไม่ต้องแปลง (ปิด "แปลงไฟล์ที่อัปโหลดเป็น Google เอกสาร" ในตั้งค่า Drive ไว้)</li>
       <li>แก้ข้อความ (ชื่อ วันที่ เลขที่ จำนวนเงิน) → ใช้แท็บ <b>แก้ Word (100%)</b> ของเว็บนี้</li>
       <li>แก้หนัก รื้อโครงเอกสาร → ใช้ Word Online ฟรีที่ <a href="https://office.com" target="_blank" rel="noopener">office.com</a> (สมัครบัญชี Microsoft ฟรี) หรือ Word ในเครื่อง</li>
     </ul>
@@ -181,5 +214,6 @@
 <script src="js/excel.js"></script>
 <script src="js/boq.js"></script>
 <script src="js/word.js"></script>
+<script src="js/font.js"></script>
 </body>
 </html>
