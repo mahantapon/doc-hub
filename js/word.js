@@ -6,7 +6,28 @@
   const W_NS = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
   const XML_NS = 'http://www.w3.org/XML/1998/namespace';
 
-  let doc = null; // { zip, fileName, parts:[{path, xmlDecl, dom, tNodes, orig, dirty}] }
+  let doc = null; // { zip, fileName, parts:[{path, xmlDecl, dom, origMap, dirty}] }
+  let nodeSpan = new WeakMap(); // w:t node -> span (rebuilt ทุกครั้งที่ render)
+  let pendingFocus = null;      // { node, offset } เอา caret ไปวางหลัง re-render
+
+  // ---------- caret helpers ----------
+  function caretOffset(span) {
+    const sel = window.getSelection();
+    if (!sel || !sel.rangeCount) return (span.textContent || '').length;
+    const r = sel.getRangeAt(0);
+    const pre = r.cloneRange();
+    pre.selectNodeContents(span);
+    try { pre.setEnd(r.endContainer, r.endOffset); } catch (_) { return (span.textContent || '').length; }
+    return pre.toString().length;
+  }
+  function placeCaret(span, off) {
+    span.focus();
+    const sel = window.getSelection(), r = document.createRange();
+    const tn = span.firstChild;
+    if (tn && tn.nodeType === 3) r.setStart(tn, Math.min(off, tn.length));
+    else r.setStart(span, 0);
+    r.collapse(true); sel.removeAllRanges(); sel.addRange(r);
+  }
 
   const partLabel = p =>
     p === 'word/document.xml' ? 'เนื้อหาเอกสาร' :
@@ -73,8 +94,9 @@
           throw new Error('อ่านโครงสร้างไฟล์ไม่ได้ (' + path + ')');
         const xmlDecl = (text.match(/^<\?xml[^>]*\?>/) || [''])[0];
         mergeAdjacentRuns(dom);
-        const tNodes = [...dom.getElementsByTagNameNS(W_NS, 't')];
-        parts.push({ path, xmlDecl, dom, tNodes, orig: tNodes.map(t => t.textContent), dirty: false });
+        const origMap = new WeakMap();
+        for (const t of dom.getElementsByTagNameNS(W_NS, 't')) origMap.set(t, t.textContent);
+        parts.push({ path, xmlDecl, dom, origMap, dirty: false });
       }
       doc = { zip, fileName: file.name, parts };
       $('#wordFileName').textContent = file.name;
@@ -133,37 +155,73 @@
     return css;
   }
 
-  function makeSpan(part, idx) {
-    const node = part.tNodes[idx];
+  const isEdited = (part, node) => {
+    const o = part.origMap.has(node) ? part.origMap.get(node) : null;
+    return o === null ? node.textContent !== '' : node.textContent !== o;
+  };
+
+  // Enter = แทรกขึ้นบรรทัดใหม่ (<w:br/>) ตรงตำแหน่ง cursor โดยผ่าครึ่ง w:t เดิม
+  function insertBreak(part, node, span) {
+    const off = caretOffset(span);
+    const text = node.textContent;
+    const run = node.parentNode;
+    node.textContent = text.slice(0, off);
+    const br = part.dom.createElementNS(W_NS, 'w:br');
+    const newT = part.dom.createElementNS(W_NS, 'w:t');
+    newT.setAttributeNS(XML_NS, 'xml:space', 'preserve');
+    newT.textContent = text.slice(off);
+    const anchor = node.nextSibling;
+    run.insertBefore(br, anchor);
+    run.insertBefore(newT, anchor);
+    part.dirty = true;
+    pendingFocus = { node: newT, offset: 0 };
+    renderEditor(); updateEditCount();
+  }
+
+  // Backspace ต้นบรรทัด = ลบ <w:br/> ที่อยู่ก่อนหน้า (เอาบรรทัดที่เพิ่งขึ้นออก)
+  function removeBreakBefore(part, node) {
+    const prev = node.previousElementSibling;
+    if (!(prev && prev.namespaceURI === W_NS && prev.localName === 'br')) return false;
+    prev.remove();
+    part.dirty = true;
+    pendingFocus = { node, offset: 0 };
+    renderEditor(); updateEditCount();
+    return true;
+  }
+
+  function makeSpan(part, node) {
     const span = document.createElement('span');
     span.className = 'wt';
     span.contentEditable = 'true';
     span.spellcheck = false;
     span.textContent = node.textContent;
     Object.assign(span.style, runStyle(node));
-    span.classList.toggle('edited', node.textContent !== part.orig[idx]);
+    span.classList.toggle('edited', isEdited(part, node));
     span.addEventListener('keydown', e => {
-      if (e.key === 'Enter') e.preventDefault();
-      if ((e.metaKey || e.ctrlKey) && ['b', 'i', 'u'].includes(e.key.toLowerCase())) e.preventDefault();
+      if ((e.metaKey || e.ctrlKey) && ['b', 'i', 'u'].includes(e.key.toLowerCase())) { e.preventDefault(); return; }
+      if (e.key === 'Enter') { e.preventDefault(); insertBreak(part, node, span); return; }
+      if (e.key === 'Backspace' && caretOffset(span) === 0) {
+        if (removeBreakBefore(part, node)) e.preventDefault();
+      }
     });
     span.addEventListener('input', () => {
-      const txt = span.textContent.replace(/[\r\n]+/g, ' ');
-      node.textContent = txt;
+      node.textContent = span.textContent.replace(/[\r\n]+/g, ' ');
       part.dirty = true;
-      span.classList.toggle('edited', txt !== part.orig[idx]);
+      span.classList.toggle('edited', isEdited(part, node));
       updateEditCount();
     });
     span.addEventListener('blur', () => {
       if (span.children.length) span.textContent = node.textContent; // ล้าง markup ที่ติดมากับการ paste
     });
+    nodeSpan.set(node, span);
     return span;
   }
 
   function renderEditor() {
     const ed = $('#wordEditor');
+    nodeSpan = new WeakMap();
     ed.innerHTML = '';
     for (const part of doc.parts) {
-      const idxMap = new Map(part.tNodes.map((n, i) => [n, i]));
       const rows = [];
       for (const p of [...part.dom.getElementsByTagNameNS(W_NS, 'p')]) {
         const atoms = paraAtoms(p);
@@ -171,10 +229,8 @@
         const div = document.createElement('div');
         div.className = 'para';
         for (const a of atoms) {
-          if (a.type === 't') {
-            const idx = idxMap.get(a.node);
-            if (idx !== undefined) div.appendChild(makeSpan(part, idx));
-          } else if (a.type === 'tab') div.insertAdjacentHTML('beforeend', '<span class="wsym">⇥</span>');
+          if (a.type === 't') div.appendChild(makeSpan(part, a.node));
+          else if (a.type === 'tab') div.insertAdjacentHTML('beforeend', '<span class="wsym">⇥</span>');
           else if (a.type === 'br') div.insertAdjacentHTML('beforeend', '<span class="wsym">↵</span><br>');
           else if (a.type === 'img') div.insertAdjacentHTML('beforeend', '<span class="wsym">🖼️</span>');
         }
@@ -188,12 +244,17 @@
       rows.forEach(r => ed.appendChild(r));
     }
     if (!ed.children.length) ed.innerHTML = '<div class="msg">ไม่พบข้อความที่แก้ได้ในไฟล์นี้</div>';
+    if (pendingFocus) {
+      const sp = nodeSpan.get(pendingFocus.node);
+      if (sp) placeCaret(sp, pendingFocus.offset);
+      pendingFocus = null;
+    }
   }
 
   function editedCount() {
     let c = 0;
     for (const part of doc.parts)
-      part.tNodes.forEach((n, i) => { if (n.textContent !== part.orig[i]) c++; });
+      for (const t of part.dom.getElementsByTagNameNS(W_NS, 't')) if (isEdited(part, t)) c++;
     return c;
   }
 
@@ -212,7 +273,7 @@
     if (!find) { setMsg($('#wordMsg'), 'พิมพ์คำที่จะค้นหาก่อน', 'err'); return; }
     let count = 0, cross = 0;
     for (const part of doc.parts) {
-      for (const t of part.tNodes) {
+      for (const t of [...part.dom.getElementsByTagNameNS(W_NS, 't')]) {
         if (t.textContent.includes(find)) {
           count += t.textContent.split(find).length - 1;
           t.textContent = t.textContent.split(find).join(repl);
@@ -257,10 +318,27 @@
     cont.innerHTML = '<div class="msg">กำลังสร้างตัวอย่าง...</div>';
     try {
       await window.docx.renderAsync(blob, cont, null, { inWrapper: true });
+      requestAnimationFrame(fitPreview);
     } catch (e) {
       cont.innerHTML = '<div class="msg err">แสดงตัวอย่างไม่ได้ (ไม่กระทบไฟล์จริง): ' + e.message + '</div>';
     }
   }
+
+  // ย่อหน้ากระดาษพรีวิวให้พอดีความกว้างของกรอบ (ไม่ล้นออกด้านขวา)
+  function fitPreview() {
+    const cont = $('#wordPreview');
+    if (!cont) return;
+    const wrap = cont.querySelector('.docx-wrapper');
+    if (!wrap) return;
+    wrap.style.zoom = '1';
+    const page = wrap.querySelector('section') || wrap.firstElementChild;
+    if (!page) return;
+    const avail = cont.clientWidth - 20;
+    if (avail <= 0) return;
+    const w = page.offsetWidth;
+    if (w > avail) wrap.style.zoom = (avail / w).toFixed(4);
+  }
+  window.addEventListener('resize', () => { if (doc) fitPreview(); });
 
   // ---------- wiring ----------
   wireDropzone($('#dropDocx'), $('#fileDocx'), files => {
