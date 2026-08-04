@@ -2,7 +2,7 @@
 // หลักการ: แก้เฉพาะข้อความใน <w:t> ของไฟล์ .docx เดิม ไม่มีการแปลงไฟล์
 // ส่วนที่ไม่ได้แก้จะถูกเก็บ byte เดิมไว้ทั้งหมด → format คงเดิม 100%
 'use strict';
-console.log('[Doc Hub] Word editor build v7 loaded — Enter=ขึ้นบรรทัด, Backspace=ลบบรรทัด');
+console.log('[Doc Hub] Word editor build v8 loaded — Enter=ขึ้นบรรทัด, Backspace=ลบบรรทัด');
 (() => {
   const W_NS = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
   const XML_NS = 'http://www.w3.org/XML/1998/namespace';
@@ -218,6 +218,22 @@ console.log('[Doc Hub] Word editor build v7 loaded — Enter=ขึ้นบร�
     return span;
   }
 
+  // ย่อหน้าระดับบนของเนื้อหา (ลูกตรงของ w:body) เท่านั้นที่ลบทั้งบรรทัดได้อย่างปลอดภัย
+  const isTopBody = p => p.parentNode && p.parentNode.namespaceURI === W_NS && p.parentNode.localName === 'body';
+  const hasSectPr = p => p.getElementsByTagNameNS(W_NS, 'sectPr').length > 0; // ย่อหน้าที่เก็บ page setup — ห้ามลบ
+  const hasNumbering = p => {
+    const pPr = [...p.children].find(c => c.namespaceURI === W_NS && c.localName === 'pPr');
+    return !!(pPr && [...pPr.children].find(c => c.namespaceURI === W_NS && c.localName === 'numPr'));
+  };
+
+  function deletePara(part, p) {
+    p.remove();
+    part.dirty = true;
+    renderEditor();
+    updateEditCount();
+    setMsg($('#wordMsg'), 'ลบบรรทัดแล้ว (เลขข้อที่เหลือจะเรียงใหม่ให้อัตโนมัติ)', 'ok');
+  }
+
   function renderEditor() {
     const ed = $('#wordEditor');
     nodeSpan = new WeakMap();
@@ -226,14 +242,32 @@ console.log('[Doc Hub] Word editor build v7 loaded — Enter=ขึ้นบร�
       const rows = [];
       for (const p of [...part.dom.getElementsByTagNameNS(W_NS, 'p')]) {
         const atoms = paraAtoms(p);
-        if (!atoms.some(a => a.type === 't' && a.node.textContent !== '')) continue;
+        const hasText = atoms.some(a => a.type === 't' && a.node.textContent !== '');
+        const top = isTopBody(p);
+        if (!hasText && !top) continue; // ย่อหน้าว่างที่ซ้อนในตาราง/textbox ไม่ต้องโชว์
         const div = document.createElement('div');
         div.className = 'para';
-        for (const a of atoms) {
-          if (a.type === 't') div.appendChild(makeSpan(part, a.node));
-          else if (a.type === 'tab') div.insertAdjacentHTML('beforeend', '<span class="wsym">⇥</span>');
-          else if (a.type === 'br') div.insertAdjacentHTML('beforeend', '<span class="wsym">↵</span><br>');
-          else if (a.type === 'img') div.insertAdjacentHTML('beforeend', '<span class="wsym">🖼️</span>');
+        // ปุ่มลบทั้งบรรทัด (เฉพาะย่อหน้าเนื้อหาระดับบน และไม่ใช่ย่อหน้าที่เก็บ page setup)
+        if (top && !hasSectPr(p)) {
+          const del = document.createElement('button');
+          del.className = 'delpara'; del.type = 'button'; del.textContent = '✕';
+          del.title = 'ลบทั้งบรรทัด (รวมเลขข้อ/บรรทัดว่าง)';
+          del.setAttribute('contenteditable', 'false');
+          del.addEventListener('mousedown', e => e.preventDefault());
+          del.addEventListener('click', () => deletePara(part, p));
+          div.appendChild(del);
+        }
+        if (hasText) {
+          for (const a of atoms) {
+            if (a.type === 't') div.appendChild(makeSpan(part, a.node));
+            else if (a.type === 'tab') div.insertAdjacentHTML('beforeend', '<span class="wsym">⇥</span>');
+            else if (a.type === 'br') div.insertAdjacentHTML('beforeend', '<span class="wsym">↵</span><br>');
+            else if (a.type === 'img') div.insertAdjacentHTML('beforeend', '<span class="wsym">🖼️</span>');
+          }
+        } else {
+          div.classList.add('empty');
+          const lbl = hasNumbering(p) ? '(เลขข้อว่าง — กด ✕ เพื่อลบเลขข้อนี้)' : '(บรรทัดว่าง — กด ✕ เพื่อลบ)';
+          div.insertAdjacentHTML('beforeend', `<span class="emptyline">${lbl}</span>`);
         }
         rows.push(div);
       }
