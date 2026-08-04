@@ -124,4 +124,7 @@
   fillTargets();
   wireDropzone($('#dropFont'), $('#fileFont'), handleFiles);
   $('#pickFont').addEventListener('click', () => $('#fileFont').click());
+
+  // ให้แท็บอื่น (Word→PDF) เรียกใช้ตัวเปลี่ยนฟอนต์ซ้ำได้
+  window.DocHubFont = { convertOne };
 })();

@@ -161,6 +161,25 @@ input:focus { outline: 2px solid #b8cdeb; border-color: var(--blue); }
 .wsym { color: #b0bccb; user-select: none; font-size: 13px; }
 .results .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+/* Word -> PDF preview */
+.wpdf-render { background: #dfe4ec; border-radius: 8px; padding: 16px; margin-top: 10px; overflow: auto; max-height: 70vh; }
+.wpdf-render:empty { display: none; }
+.wpdf-render .docx-wrapper { background: transparent !important; padding: 10px !important; margin: 0 auto !important; }
+
+/* ตอนสั่งพิมพ์จากแท็บ Word→PDF: โชว์เฉพาะเอกสาร ซ่อน UI อื่นหมด */
+@media print {
+  html.printing-wpdf body > header,
+  html.printing-wpdf body > nav,
+  html.printing-wpdf body > footer,
+  html.printing-wpdf #wpdfCard,
+  html.printing-wpdf #tab-wpdf > .pvhead { display: none !important; }
+  html.printing-wpdf main { padding: 0 !important; max-width: none !important; margin: 0 !important; }
+  html.printing-wpdf .wpdf-render { background: #fff !important; padding: 0 !important; margin: 0 !important; max-height: none !important; overflow: visible !important; }
+  html.printing-wpdf .wpdf-render .docx-wrapper { padding: 0 !important; margin: 0 !important; }
+  html.printing-wpdf .wpdf-render .docx-wrapper > section { box-shadow: none !important; margin: 0 !important; }
+}
+@media print { @page { margin: 0; } }
+
 .hidden { display: none !important; }
 
 /* sop */
