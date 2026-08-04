@@ -76,5 +76,96 @@
     return fixedBlob;
   }
 
-  window.DocHubDocx = { sanitizeDocx, fixXml };
+  // ---------- เตรียมไฟล์ก่อนส่งเข้า editor ----------
+  // เอกสารไทยเก็บขนาดฟอนต์ 2 ค่า: w:sz (ละติน) กับ w:szCs (ไทย/complex script)
+  // ตัว editor อ่านแค่ w:sz → ข้อความไทยเลยแสดงเล็ก และตอนบันทึกยังเขียนทับ szCs = sz
+  // (ของจริงเจอ: ไทย 16pt ถูกหดเหลือ 12pt ในไฟล์)
+  // แก้โดย: เฉพาะ run ที่เป็น "ไทยล้วน" ให้ตั้ง sz = ขนาดไทยที่ใช้จริง
+  // ปลอดภัยเพราะ run ไทยล้วนไม่มีตัวอักษรละติน → w:sz ไม่มีผลต่อการแสดงผลใน Word
+  const HAS_LATIN = /[A-Za-z0-9]/;
+  const PARTS_TEXT = /^word\/(document|header\d*|footer\d*|footnotes|endnotes)\.xml$/;
+
+  const kidVal = (el, ln) => {
+    if (!el) return null;
+    const k = [...el.children].find(c => c.namespaceURI === W_NS && c.localName === ln);
+    return k ? (k.getAttributeNS(W_NS, 'val') || k.getAttribute('w:val')) : null;
+  };
+
+  // อ่านขนาดจาก styles.xml (ไล่ตาม basedOn) + ค่าเริ่มต้นเอกสาร
+  function readStyles(stylesXml) {
+    const map = {}; let defSzCs = null;
+    if (!stylesXml) return { map, defSzCs };
+    const dom = new DOMParser().parseFromString(stylesXml, 'application/xml');
+    const dd = dom.getElementsByTagNameNS(W_NS, 'docDefaults')[0];
+    if (dd) {
+      const rd = dd.getElementsByTagNameNS(W_NS, 'rPrDefault')[0];
+      const rpr = rd && rd.getElementsByTagNameNS(W_NS, 'rPr')[0];
+      defSzCs = kidVal(rpr, 'szCs') || kidVal(rpr, 'sz');
+    }
+    for (const st of dom.getElementsByTagNameNS(W_NS, 'style')) {
+      const id = st.getAttributeNS(W_NS, 'styleId') || st.getAttribute('w:styleId');
+      if (!id) continue;
+      const rpr = [...st.children].find(c => c.namespaceURI === W_NS && c.localName === 'rPr');
+      map[id] = { szCs: kidVal(rpr, 'szCs'), sz: kidVal(rpr, 'sz'), basedOn: kidVal(st, 'basedOn') };
+    }
+    return { map, defSzCs };
+  }
+
+  function styleSzCs(map, id, depth = 0) {
+    if (!id || !map[id] || depth > 8) return null;
+    return map[id].szCs || map[id].sz || styleSzCs(map, map[id].basedOn, depth + 1);
+  }
+
+  function setSize(dom, rPr, val) {
+    for (const ln of ['sz', 'szCs']) {
+      let el = [...rPr.children].find(c => c.namespaceURI === W_NS && c.localName === ln);
+      if (!el) { el = dom.createElementNS(W_NS, 'w:' + ln); rPr.appendChild(el); }
+      el.setAttributeNS(W_NS, 'w:val', val);
+    }
+    reorder(rPr, RPR_ORDER);
+  }
+
+  async function prepareForEditor(blob) {
+    const src = await JSZip.loadAsync(blob);
+    const stylesXml = src.file('word/styles.xml') ? await src.file('word/styles.xml').async('string') : null;
+    const { map, defSzCs } = readStyles(stylesXml);
+    let touched = 0;
+    for (const path of Object.keys(src.files)) {
+      if (!PARTS_TEXT.test(path)) continue;
+      const text = await src.file(path).async('string');
+      const dom = new DOMParser().parseFromString(text, 'application/xml');
+      if (dom.getElementsByTagName('parsererror').length) continue;
+      let changed = false;
+      for (const p of dom.getElementsByTagNameNS(W_NS, 'p')) {
+        const pPr = [...p.children].find(c => c.namespaceURI === W_NS && c.localName === 'pPr');
+        const pStyle = kidVal(pPr, 'pStyle');
+        for (const r of p.getElementsByTagNameNS(W_NS, 'r')) {
+          const txt = [...r.getElementsByTagNameNS(W_NS, 't')].map(t => t.textContent).join('');
+          if (!txt.trim() || HAS_LATIN.test(txt)) continue;           // ข้ามถ้าไม่ใช่ไทยล้วน
+          const rPr = [...r.children].find(c => c.namespaceURI === W_NS && c.localName === 'rPr');
+          if (!rPr) continue;
+          const sz = kidVal(rPr, 'sz'), szCs = kidVal(rPr, 'szCs');
+          const thai = szCs || styleSzCs(map, kidVal(rPr, 'rStyle')) || styleSzCs(map, pStyle) || defSzCs;
+          if (!thai || thai === sz) continue;                          // ตรงกันอยู่แล้ว ไม่ต้องแตะ
+          setSize(dom, rPr, thai);
+          changed = true; touched++;
+        }
+      }
+      if (changed) {
+        let out = new XMLSerializer().serializeToString(dom);
+        const decl = (text.match(/^<\?xml[^>]*\?>/) || [''])[0];
+        if (decl && !out.startsWith('<?xml')) out = decl + '\r\n' + out;
+        src.file(path, out);
+      }
+    }
+    console.log(`[Doc Hub] เตรียมไฟล์: ปรับขนาดฟอนต์ไทยให้ editor ${touched} จุด`);
+    if (!touched) return blob;
+    return src.generateAsync({
+      type: 'blob',
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      compression: 'DEFLATE'
+    });
+  }
+
+  window.DocHubDocx = { sanitizeDocx, fixXml, prepareForEditor };
 })();

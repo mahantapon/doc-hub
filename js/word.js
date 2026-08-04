@@ -2,7 +2,7 @@
 // เปิด .docx → คลิกแก้ตรงไหนก็ได้ พิมพ์/ลบ/จัดหน้า → ดาวน์โหลดกลับเป็น .docx
 // ทดสอบกับสัญญาไทยจริง: ฟอนต์ฝัง, จัดคำแบบไทย, กล่องลอย, หัว-ท้ายกระดาษ คงครบหลัง export
 'use strict';
-console.log('[Doc Hub] Word editor build v11 (SuperDoc WYSIWYG)');
+console.log('[Doc Hub] Word editor build v12 (SuperDoc WYSIWYG)');
 (() => {
   let sd = null, fileName = null;
 
@@ -21,10 +21,16 @@ console.log('[Doc Hub] Word editor build v11 (SuperDoc WYSIWYG)');
       if (sd) { try { sd.destroy(); } catch (_) {} sd = null; }
       $('#sdToolbar').innerHTML = '';
       $('#sdEditor').innerHTML = '';
+      // ปรับขนาดฟอนต์ไทยให้ editor อ่านถูก (กันตัวเล็ก + กันไฟล์ถูกหดตอนบันทึก)
+      let src = file;
+      if (window.DocHubDocx) {
+        const prepared = await window.DocHubDocx.prepareForEditor(file);
+        src = new File([prepared], file.name, { type: DOCX_MIME });
+      }
       sd = new window.SuperDoc({
         selector: '#sdEditor',
         toolbar: '#sdToolbar',
-        document: file,
+        document: src,
         documentMode: 'editing',
         pagination: true,
         onReady: () => setMsg($('#wordMsg'), 'พร้อมแก้ไข ✓ คลิกในเอกสารแล้วพิมพ์/ลบได้เหมือนใช้ Word', 'ok'),
