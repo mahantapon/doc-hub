@@ -179,6 +179,12 @@ input:focus { outline: 2px solid #b8cdeb; border-color: var(--blue); }
   background: #dfe4ec; border: 1px solid var(--line); border-top: none;
   border-radius: 0 0 8px 8px; height: calc(100vh - 235px); min-height: 360px; overflow: auto;
 }
+#wordExactPane { margin-top: 14px; }
+#wordExact {
+  background: #eceff4; border: 1px solid var(--line); border-radius: 0 0 8px 8px;
+  padding: 8px; max-height: 74vh; overflow: auto;
+}
+#wordExact .docx-wrapper { background: transparent !important; padding: 8px !important; margin: 0 auto !important; }
 
 /* Word -> PDF preview */
 .wpdf-render { background: #dfe4ec; border-radius: 8px; padding: 16px; margin-top: 10px; overflow: auto; max-height: 70vh; }

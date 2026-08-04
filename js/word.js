@@ -2,7 +2,7 @@
 // เปิด .docx → คลิกแก้ตรงไหนก็ได้ พิมพ์/ลบ/จัดหน้า → ดาวน์โหลดกลับเป็น .docx
 // ทดสอบกับสัญญาไทยจริง: ฟอนต์ฝัง, จัดคำแบบไทย, กล่องลอย, หัว-ท้ายกระดาษ คงครบหลัง export
 'use strict';
-console.log('[Doc Hub] Word editor build v9 (SuperDoc WYSIWYG)');
+console.log('[Doc Hub] Word editor build v10 (SuperDoc WYSIWYG)');
 (() => {
   let sd = null, fileName = null;
 
@@ -55,8 +55,36 @@ console.log('[Doc Hub] Word editor build v9 (SuperDoc WYSIWYG)');
     if (sd) { try { sd.destroy(); } catch (_) {} sd = null; }
     $('#sdEditor').innerHTML = '';
     $('#sdToolbar').innerHTML = '';
+    $('#wordExact').innerHTML = '';
+    $('#wordExactPane').classList.add('hidden');
+    $('#btnExact').textContent = '🔍 ตรวจก่อนโหลด';
     $('#wordWork').classList.add('hidden');
     $('#wordStart').classList.remove('hidden');
+  }
+
+  // ตรวจก่อนโหลด: export ไฟล์สถานะปัจจุบัน แล้ววาดด้วย docx-preview (แม่นเรื่องจัดคำไทยกว่า)
+  async function toggleExact() {
+    const pane = $('#wordExactPane');
+    if (!pane.classList.contains('hidden')) {
+      pane.classList.add('hidden');
+      $('#btnExact').textContent = '🔍 ตรวจก่อนโหลด';
+      return;
+    }
+    if (!sd) return;
+    try {
+      setMsg($('#wordMsg'), 'กำลังสร้างตัวอย่างผลลัพธ์จริง...', '');
+      const blobs = await sd.exportEditorsToDOCX();
+      if (!blobs || !blobs[0]) throw new Error('สร้างตัวอย่างไม่สำเร็จ');
+      const cont = $('#wordExact');
+      cont.innerHTML = '';
+      await window.docx.renderAsync(blobs[0], cont, null, { inWrapper: true, ignoreLastRenderedPageBreak: false });
+      pane.classList.remove('hidden');
+      $('#btnExact').textContent = '✖ ปิดตัวอย่าง';
+      pane.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setMsg($('#wordMsg'), 'นี่คือหน้าตาไฟล์ที่จะได้จริง — โอเคแล้วกดดาวน์โหลดได้เลย', 'ok');
+    } catch (e) {
+      setMsg($('#wordMsg'), 'สร้างตัวอย่างไม่สำเร็จ: ' + e.message, 'err');
+    }
   }
 
   wireDropzone($('#dropDocx'), $('#fileDocx'), files => {
@@ -66,6 +94,7 @@ console.log('[Doc Hub] Word editor build v9 (SuperDoc WYSIWYG)');
   });
   $('#pickDocx').addEventListener('click', () => $('#fileDocx').click());
   $('#btnDownload').addEventListener('click', download);
+  $('#btnExact').addEventListener('click', toggleExact);
   $('#btnCloseDoc').addEventListener('click', closeDoc);
 
   // ---------- dev hooks (ทดสอบอัตโนมัติ) ----------

@@ -6,7 +6,7 @@
 <title>Doc Hub — เรืองอนันต์</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=9">
+<link rel="stylesheet" href="css/style.css?v=10">
 <link rel="stylesheet" href="vendor/superdoc.bundle.css">
 </head>
 <body>
@@ -100,12 +100,18 @@
     <div class="toolbar card">
       <span id="wordFileName" class="fname"></span>
       <span class="spacer"></span>
+      <button id="btnExact" class="btn">🔍 ตรวจก่อนโหลด</button>
       <button id="btnDownload" class="btn primary">⬇️ ดาวน์โหลด .docx</button>
       <button id="btnCloseDoc" class="btn ghost">✖ ปิดไฟล์</button>
     </div>
     <div id="wordMsg" class="msg"></div>
+    <div class="tip" style="margin:0 0 8px">💡 หน้าจอแก้ไขเป็นการแสดงผล<b>โดยประมาณ</b> — ช่องไฟภาษาไทย/ขนาดตัวอักษรบางจุดอาจดูต่างจาก Word แต่<b>ตัวไฟล์ถูกต้องเสมอ</b> · ไม่แน่ใจกด <b>🔍 ตรวจก่อนโหลด</b> เพื่อดูหน้าตาผลลัพธ์จริง</div>
     <div id="sdToolbar" class="sd-toolbar"></div>
     <div id="sdEditor" class="sd-editor"></div>
+    <div id="wordExactPane" class="hidden">
+      <div class="pvhead">ตัวอย่างผลลัพธ์จริง (ใกล้เคียง Word — อ่านอย่างเดียว ปิดได้ด้วยปุ่มเดิม)</div>
+      <div id="wordExact"></div>
+    </div>
   </div>
 </section>
 
@@ -206,7 +212,7 @@
 
 </main>
 
-<footer>บริษัท เรืองอนันต์ คอร์ปอเรชั่น จำกัด · Doc Hub · ประมวลผลในเบราว์เซอร์ทั้งหมด ไฟล์ไม่ถูกอัปโหลดไปเซิร์ฟเวอร์ภายนอก · <b>build v9</b></footer>
+<footer>บริษัท เรืองอนันต์ คอร์ปอเรชั่น จำกัด · Doc Hub · ประมวลผลในเบราว์เซอร์ทั้งหมด ไฟล์ไม่ถูกอัปโหลดไปเซิร์ฟเวอร์ภายนอก · <b>build v10</b></footer>
 
 <!-- config dialog -->
 <dialog id="cfgDialog">
@@ -231,11 +237,11 @@
 <script src="vendor/superdoc.bundle.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://apis.google.com/js/api.js" async defer></script>
-<script src="js/app.js?v=9"></script>
-<script src="js/excel.js?v=9"></script>
-<script src="js/boq.js?v=9"></script>
-<script src="js/word.js?v=9"></script>
-<script src="js/font.js?v=9"></script>
-<script src="js/wpdf.js?v=9"></script>
+<script src="js/app.js?v=10"></script>
+<script src="js/excel.js?v=10"></script>
+<script src="js/boq.js?v=10"></script>
+<script src="js/word.js?v=10"></script>
+<script src="js/font.js?v=10"></script>
+<script src="js/wpdf.js?v=10"></script>
 </body>
 </html>
