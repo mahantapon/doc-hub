@@ -6,7 +6,8 @@
 <title>Doc Hub — เรืองอนันต์</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=8">
+<link rel="stylesheet" href="css/style.css?v=9">
+<link rel="stylesheet" href="vendor/superdoc.bundle.css">
 </head>
 <body>
 
@@ -23,7 +24,7 @@
 <nav class="tabs">
   <button class="tab active" data-tab="excel">📊 แปลง Excel ⇄ Sheet</button>
   <button class="tab" data-tab="boq">📤 แปลง Sheet/Docs เป็นไฟล์</button>
-  <button class="tab" data-tab="word">📝 แก้ Word (100%)</button>
+  <button class="tab" data-tab="word">📝 แก้ Word</button>
   <button class="tab" data-tab="wpdf">🧾 Word → PDF</button>
   <button class="tab" data-tab="font">🔤 เปลี่ยนฟอนต์เข้า Docs</button>
   <button class="tab" data-tab="sop">📖 วิธีใช้ / กติกา</button>
@@ -82,12 +83,12 @@
   </div>
 </section>
 
-<!-- ============ TAB 3 : WORD ============ -->
+<!-- ============ TAB 3 : WORD (SuperDoc WYSIWYG) ============ -->
 <section id="tab-word" class="panel">
   <div class="card" id="wordStart">
-    <h2>📝 แก้ Word แบบ Format ไม่เพี้ยน 100%</h2>
-    <p class="hint">เปิดไฟล์ .docx อะไรก็ได้ → แก้ข้อความ → ดาวน์โหลดกลับ ฟอนต์ / การจัดหน้า / ตาราง / หัวกระดาษ เหมือนเดิมทุกจุด
-    เพราะระบบผ่าตัดแก้เฉพาะ "ตัวอักษร" ในไฟล์เดิม <b>ไม่มีขั้นตอนแปลงไฟล์เลย</b></p>
+    <h2>📝 แก้ Word — เห็นเอกสารจริง แก้ตรงนั้นเลย</h2>
+    <p class="hint">เปิดไฟล์ .docx → เห็นเอกสารหน้าตาเหมือนเปิดใน Word → <b>คลิกแก้ตรงไหนก็ได้</b> พิมพ์ / ลบ / ขึ้นบรรทัด / จัดตัวหนา-สี ได้ธรรมชาติ → ดาวน์โหลดกลับเป็น .docx
+    (ทดสอบกับสัญญาไทยจริงแล้ว: ฟอนต์ จัดคำแบบไทย กล่องตรายาง หัว-ท้ายกระดาษ อยู่ครบ)</p>
     <div id="dropDocx" class="dropzone">
       วางไฟล์ .docx ที่นี่ หรือ
       <button id="pickDocx" class="btn">เลือกไฟล์</button>
@@ -98,26 +99,13 @@
   <div id="wordWork" class="hidden">
     <div class="toolbar card">
       <span id="wordFileName" class="fname"></span>
-      <span id="editCount" class="badge">แก้แล้ว 0 จุด</span>
       <span class="spacer"></span>
-      <input id="findText" placeholder="ค้นหา..." autocomplete="off">
-      <input id="replText" placeholder="แทนที่ด้วย..." autocomplete="off">
-      <button id="btnReplace" class="btn">แทนที่ทั้งหมด</button>
-      <button id="btnRefresh" class="btn">🔄 รีเฟรชตัวอย่าง</button>
       <button id="btnDownload" class="btn primary">⬇️ ดาวน์โหลด .docx</button>
       <button id="btnCloseDoc" class="btn ghost">✖ ปิดไฟล์</button>
     </div>
     <div id="wordMsg" class="msg"></div>
-    <div class="split">
-      <div class="editcol">
-        <div class="pvhead">แก้ข้อความได้ที่นี่ · คลิกที่ตัวหนังสือแล้วพิมพ์ · กด Enter เพื่อขึ้นบรรทัดใหม่ · Backspace ต้นบรรทัดลบบรรทัด · กด ✕ หน้าบรรทัดเพื่อลบทั้งบรรทัด/เลขข้อ</div>
-        <div id="wordEditor" class="editor"></div>
-      </div>
-      <div class="pvcol">
-        <div class="pvhead">ตัวอย่างเอกสาร (การแสดงผลโดยประมาณ — ตัวไฟล์จริงคงเดิม 100%)</div>
-        <div id="wordPreview"></div>
-      </div>
-    </div>
+    <div id="sdToolbar" class="sd-toolbar"></div>
+    <div id="sdEditor" class="sd-editor"></div>
   </div>
 </section>
 
@@ -200,7 +188,7 @@
       <li><b>เลี่ยงการแปลงเป็น Google Docs</b> — ฟอนต์ไทยกับการจัดหน้าจะเพี้ยน (Google Docs ไม่มี TH SarabunPSK / Cordia New)</li>
       <li>ถ้า<b>จำเป็นต้องใช้ Google Docs จริง ๆ</b> → เอาไฟล์ผ่านแท็บ <b>เปลี่ยนฟอนต์เข้า Docs</b> ก่อน (เปลี่ยนเป็น Sarabun ที่ Google มี) ความเพี้ยนจะลดลงมาก</li>
       <li>ถ้าแค่ต้องการ<b>เก็บไฟล์ไว้ใน Drive</b> → อัปโหลด .docx ขึ้นไปตรง ๆ ได้เลย ไม่ต้องแปลง (ปิด "แปลงไฟล์ที่อัปโหลดเป็น Google เอกสาร" ในตั้งค่า Drive ไว้)</li>
-      <li>แก้ข้อความ (ชื่อ วันที่ เลขที่ จำนวนเงิน) → ใช้แท็บ <b>แก้ Word (100%)</b> ของเว็บนี้</li>
+      <li>แก้เอกสาร → ใช้แท็บ <b>แก้ Word</b> ของเว็บนี้ (แก้ในหน้าเอกสารจริงเหมือนเปิด Word)</li>
       <li>แก้หนัก รื้อโครงเอกสาร → ใช้ Word Online ฟรีที่ <a href="https://office.com" target="_blank" rel="noopener">office.com</a> (สมัครบัญชี Microsoft ฟรี) หรือ Word ในเครื่อง</li>
     </ul>
 
@@ -218,7 +206,7 @@
 
 </main>
 
-<footer>บริษัท เรืองอนันต์ คอร์ปอเรชั่น จำกัด · Doc Hub · ประมวลผลในเบราว์เซอร์ทั้งหมด ไฟล์ไม่ถูกอัปโหลดไปเซิร์ฟเวอร์ภายนอก · <b>build v8</b></footer>
+<footer>บริษัท เรืองอนันต์ คอร์ปอเรชั่น จำกัด · Doc Hub · ประมวลผลในเบราว์เซอร์ทั้งหมด ไฟล์ไม่ถูกอัปโหลดไปเซิร์ฟเวอร์ภายนอก · <b>build v9</b></footer>
 
 <!-- config dialog -->
 <dialog id="cfgDialog">
@@ -240,13 +228,14 @@
 <script src="vendor/docx-preview.min.js"></script>
 <script src="vendor/jspdf.umd.min.js"></script>
 <script src="vendor/html2canvas.min.js"></script>
+<script src="vendor/superdoc.bundle.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://apis.google.com/js/api.js" async defer></script>
-<script src="js/app.js?v=8"></script>
-<script src="js/excel.js?v=8"></script>
-<script src="js/boq.js?v=8"></script>
-<script src="js/word.js?v=8"></script>
-<script src="js/font.js?v=8"></script>
-<script src="js/wpdf.js?v=8"></script>
+<script src="js/app.js?v=9"></script>
+<script src="js/excel.js?v=9"></script>
+<script src="js/boq.js?v=9"></script>
+<script src="js/word.js?v=9"></script>
+<script src="js/font.js?v=9"></script>
+<script src="js/wpdf.js?v=9"></script>
 </body>
 </html>

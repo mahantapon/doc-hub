@@ -173,6 +173,13 @@ input:focus { outline: 2px solid #b8cdeb; border-color: var(--blue); }
 .para.empty .delpara { opacity: .65; }
 .emptyline { color: #c3ccd8; font-size: 12.5px; font-style: italic; }
 
+/* SuperDoc editor (แท็บแก้ Word) */
+.sd-toolbar { background: #fff; border: 1px solid var(--line); border-radius: 8px 8px 0 0; min-height: 40px; }
+.sd-editor {
+  background: #dfe4ec; border: 1px solid var(--line); border-top: none;
+  border-radius: 0 0 8px 8px; height: calc(100vh - 235px); min-height: 360px; overflow: auto;
+}
+
 /* Word -> PDF preview */
 .wpdf-render { background: #dfe4ec; border-radius: 8px; padding: 16px; margin-top: 10px; overflow: auto; max-height: 70vh; }
 .wpdf-render:empty { display: none; }
