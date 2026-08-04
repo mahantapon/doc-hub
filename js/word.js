@@ -2,7 +2,7 @@
 // หลักการ: แก้เฉพาะข้อความใน <w:t> ของไฟล์ .docx เดิม ไม่มีการแปลงไฟล์
 // ส่วนที่ไม่ได้แก้จะถูกเก็บ byte เดิมไว้ทั้งหมด → format คงเดิม 100%
 'use strict';
-console.log('[Doc Hub] Word editor build v6 loaded — Enter=ขึ้นบรรทัด, Backspace=ลบบรรทัด');
+console.log('[Doc Hub] Word editor build v7 loaded — Enter=ขึ้นบรรทัด, Backspace=ลบบรรทัด');
 (() => {
   const W_NS = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
   const XML_NS = 'http://www.w3.org/XML/1998/namespace';

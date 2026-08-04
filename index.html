@@ -6,7 +6,7 @@
 <title>Doc Hub — เรืองอนันต์</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=6">
+<link rel="stylesheet" href="css/style.css?v=7">
 </head>
 <body>
 
@@ -127,8 +127,8 @@
     <h2>🧾 แปลง Word เป็น PDF (ฟอนต์ไม่เพี้ยน)</h2>
     <p class="hint">โยนไฟล์ .docx เข้ามา → ตรวจหน้าตา → กดสร้าง PDF ระบบใช้ <b>ฟอนต์ที่ฝังมาในไฟล์</b>เรนเดอร์ (ถ้าไฟล์ฝังฟอนต์ไว้) และสร้าง PDF ด้วยเครื่องพิมพ์ของเบราว์เซอร์ — ได้ PDF เวกเตอร์ ฟอนต์คมชัด เลือกคัดลอกข้อความได้</p>
     <label class="fld" style="display:flex;align-items:center;gap:8px">
-      <input type="checkbox" id="wpdfSarabun" style="width:auto;margin:0">
-      <span><b>บังคับใช้ฟอนต์ Sarabun ก่อนสร้าง PDF</b> — กันเพี้ยน 100% แม้ไฟล์ไม่ได้ฝังฟอนต์ (หน้าตาใกล้เคียง TH Sarabun มาก)</span>
+      <input type="checkbox" id="wpdfSarabun" style="width:auto;margin:0" checked>
+      <span><b>ใช้ฟอนต์ Sarabun (กันเพี้ยน 100%)</b> — แนะนำให้เปิดไว้ ต่อให้ไฟล์ไม่ได้ฝังฟอนต์ก็ไม่เพี้ยน · เอาออกถ้าไฟล์ฝังฟอนต์มาแล้วอยากได้ฟอนต์เดิมเป๊ะ</span>
     </label>
     <div id="dropWpdf" class="dropzone">
       วางไฟล์ .docx ที่นี่ หรือ
@@ -138,11 +138,12 @@
     <div class="btnrow">
       <span id="wpdfName" class="fname"></span>
       <span class="spacer"></span>
-      <button id="wpdfPrint" class="btn primary" disabled>🖨️ สร้าง PDF (บันทึกเป็น PDF)</button>
+      <button id="wpdfDownload" class="btn primary" disabled>⬇️ ดาวน์โหลด PDF</button>
+      <button id="wpdfPrint" class="btn" disabled>🖨️ พิมพ์ / Save as PDF</button>
     </div>
     <div id="wpdfMsg" class="msg"></div>
-    <div class="tip">💡 ในหน้าต่างพิมพ์: ปลายทางเลือก <b>"บันทึกเป็น PDF" (Save as PDF)</b> · ตั้งขอบกระดาษเป็น <b>ไม่มี (None)</b> เพื่อไม่ให้ขอบซ้อน · เอกสารส่วนใหญ่เป็น A4</div>
-    <div class="tip" style="background:#fff8e8;border-color:#f2dfae;color:#7a5b12">⚠️ ฟอนต์จะ<b>ไม่เพี้ยน</b>เมื่อ (ก) ไฟล์ Word ฝังฟอนต์มาด้วย <i>หรือ</i> (ข) ติ๊ก "บังคับใช้ Sarabun" ด้านบน · ถ้าไฟล์ไม่ได้ฝังฟอนต์และไม่ติ๊ก Sarabun อาจสลับฟอนต์ได้ · การจัดหน้าเป็นการเรนเดอร์โดยประมาณ (แท็บ/แบ่งหน้าอาจต่างจาก Word เล็กน้อย) — ถ้าต้องการเป๊ะ 100% เปิดไฟล์ใน Word แล้ว Cmd+P → Save as PDF</div>
+    <div class="tip">💡 <b>ดาวน์โหลด PDF</b> = ได้ไฟล์ลงเครื่องทันที (แนะนำ) · <b>พิมพ์</b> = ได้ PDF ที่เลือกคัดลอกข้อความได้ แต่ต้องกด "Save as PDF" ในหน้าต่างพิมพ์เอง</div>
+    <div class="tip" style="background:#fff8e8;border-color:#f2dfae;color:#7a5b12">⚠️ การจัดหน้าเป็นการเรนเดอร์<b>โดยประมาณ</b> (แท็บ/การแบ่งหน้าอาจต่างจาก Word เล็กน้อย) — ถ้าต้องการเป๊ะ 100% ทุกมิลลิเมตร เปิดไฟล์ใน Word แล้ว Cmd+P → Save as PDF</div>
   </div>
   <div class="pvhead" style="max-width:760px;margin:0 auto">ตัวอย่างที่จะพิมพ์เป็น PDF</div>
   <div id="wpdfRender" class="wpdf-render"></div>
@@ -217,7 +218,7 @@
 
 </main>
 
-<footer>บริษัท เรืองอนันต์ คอร์ปอเรชั่น จำกัด · Doc Hub · ประมวลผลในเบราว์เซอร์ทั้งหมด ไฟล์ไม่ถูกอัปโหลดไปเซิร์ฟเวอร์ภายนอก · <b>build v6</b></footer>
+<footer>บริษัท เรืองอนันต์ คอร์ปอเรชั่น จำกัด · Doc Hub · ประมวลผลในเบราว์เซอร์ทั้งหมด ไฟล์ไม่ถูกอัปโหลดไปเซิร์ฟเวอร์ภายนอก · <b>build v7</b></footer>
 
 <!-- config dialog -->
 <dialog id="cfgDialog">
@@ -237,13 +238,15 @@
 
 <script src="vendor/jszip.min.js"></script>
 <script src="vendor/docx-preview.min.js"></script>
+<script src="vendor/jspdf.umd.min.js"></script>
+<script src="vendor/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://apis.google.com/js/api.js" async defer></script>
-<script src="js/app.js?v=6"></script>
-<script src="js/excel.js?v=6"></script>
-<script src="js/boq.js?v=6"></script>
-<script src="js/word.js?v=6"></script>
-<script src="js/font.js?v=6"></script>
-<script src="js/wpdf.js?v=6"></script>
+<script src="js/app.js?v=7"></script>
+<script src="js/excel.js?v=7"></script>
+<script src="js/boq.js?v=7"></script>
+<script src="js/word.js?v=7"></script>
+<script src="js/font.js?v=7"></script>
+<script src="js/wpdf.js?v=7"></script>
 </body>
 </html>
