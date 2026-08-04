@@ -6,7 +6,7 @@
 <title>Doc Hub — เรืองอนันต์</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=4">
+<link rel="stylesheet" href="css/style.css?v=5">
 </head>
 <body>
 
@@ -22,7 +22,7 @@
 
 <nav class="tabs">
   <button class="tab active" data-tab="excel">📊 แปลง Excel ⇄ Sheet</button>
-  <button class="tab" data-tab="boq">📤 แปลง Sheet เป็นไฟล์</button>
+  <button class="tab" data-tab="boq">📤 แปลง Sheet/Docs เป็นไฟล์</button>
   <button class="tab" data-tab="word">📝 แก้ Word (100%)</button>
   <button class="tab" data-tab="font">🔤 เปลี่ยนฟอนต์เข้า Docs</button>
   <button class="tab" data-tab="sop">📖 วิธีใช้ / กติกา</button>
@@ -68,15 +68,16 @@
 <!-- ============ TAB 2 : BOQ ============ -->
 <section id="tab-boq" class="panel">
   <div class="card narrow">
-    <h2>📤 แปลง Google Sheet เป็น "ไฟล์" ส่งต่อได้ทันที</h2>
-    <p class="hint">วางลิงก์ Google Sheet (เช่น BOQ ใบเสนอราคา รายงาน) แล้วกดปุ่ม — ได้ไฟล์จริงส่งต่อให้คนนอกองค์กรได้เลย ผู้รับไม่ต้องเปิดลิงก์ ไม่ต้องมีบัญชี Google</p>
-    <input id="boqLink" placeholder="วางลิงก์ https://docs.google.com/spreadsheets/d/..." autocomplete="off">
+    <h2>📤 แปลงลิงก์ Google เป็น "ไฟล์" ส่งต่อได้ทันที</h2>
+    <p class="hint">วางลิงก์ <b>Google Sheet, Google Docs หรือ Google Slides</b> แล้วกดปุ่ม — ได้ไฟล์จริง (PDF / Excel / Word) ส่งต่อให้คนนอกองค์กรได้เลย ผู้รับไม่ต้องเปิดลิงก์ ไม่ต้องมีบัญชี Google</p>
+    <input id="boqLink" placeholder="วางลิงก์ https://docs.google.com/document/d/... หรือ /spreadsheets/d/..." autocomplete="off">
     <div class="btnrow">
-      <button id="boqXlsx" class="btn primary">⬇️ โหลดเป็น Excel (.xlsx)</button>
-      <button id="boqPdf" class="btn">⬇️ โหลดเป็น PDF</button>
+      <button id="boqPdf" class="btn primary">⬇️ โหลดเป็น PDF</button>
+      <button id="boqNative" class="btn">⬇️ โหลดไฟล์ต้นฉบับ</button>
     </div>
     <div id="boqMsg" class="msg"></div>
-    <div class="tip">💡 ไฟล์จะใช้ชื่อเดียวกับชื่อไฟล์ Google Sheet · ปุ่มนี้ใช้สิทธิ์บัญชี Google ที่ล็อกอินอยู่ในเบราว์เซอร์ของท่านเอง จึงโหลดได้แม้ไฟล์ไม่ได้เปิดแชร์สาธารณะ</div>
+    <div class="tip">💡 ปุ่มนี้ใช้สิทธิ์บัญชี Google ที่ล็อกอินอยู่ในเบราว์เซอร์ของท่านเอง จึงโหลดได้แม้ไฟล์ไม่ได้เปิดแชร์สาธารณะ · ไฟล์ใช้ชื่อเดียวกับชื่อในไดรฟ์</div>
+    <div class="tip" style="background:#fff8e8;border-color:#f2dfae;color:#7a5b12">⚠️ <b>เรื่องฟอนต์:</b> PDF ที่ได้จะ "เหมือนที่เห็นในหน้า Google Docs เป๊ะ" — ถ้าในหน้า Google Docs ฟอนต์ปกติดี PDF ก็ปกติ · แต่ถ้าในหน้า Google Docs ฟอนต์เพี้ยนอยู่แล้ว (เพราะไฟล์ใช้ TH SarabunPSK ที่ Google ไม่มี) PDF ก็จะเพี้ยนตาม — วิธีแก้: เอาไฟล์ Word ผ่านแท็บ <b>🔤 เปลี่ยนฟอนต์เข้า Docs</b> ก่อน แล้วนำเข้า Google Docs ใหม่ ฟอนต์จะตรง แล้วค่อยโหลด PDF ตรงนี้</div>
   </div>
 </section>
 
@@ -188,7 +189,7 @@
 
 </main>
 
-<footer>บริษัท เรืองอนันต์ คอร์ปอเรชั่น จำกัด · Doc Hub · ประมวลผลในเบราว์เซอร์ทั้งหมด ไฟล์ไม่ถูกอัปโหลดไปเซิร์ฟเวอร์ภายนอก · <b>build v4</b></footer>
+<footer>บริษัท เรืองอนันต์ คอร์ปอเรชั่น จำกัด · Doc Hub · ประมวลผลในเบราว์เซอร์ทั้งหมด ไฟล์ไม่ถูกอัปโหลดไปเซิร์ฟเวอร์ภายนอก · <b>build v5</b></footer>
 
 <!-- config dialog -->
 <dialog id="cfgDialog">
@@ -210,10 +211,10 @@
 <script src="vendor/docx-preview.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://apis.google.com/js/api.js" async defer></script>
-<script src="js/app.js?v=4"></script>
-<script src="js/excel.js?v=4"></script>
-<script src="js/boq.js?v=4"></script>
-<script src="js/word.js?v=4"></script>
-<script src="js/font.js?v=4"></script>
+<script src="js/app.js?v=5"></script>
+<script src="js/excel.js?v=5"></script>
+<script src="js/boq.js?v=5"></script>
+<script src="js/word.js?v=5"></script>
+<script src="js/font.js?v=5"></script>
 </body>
 </html>
