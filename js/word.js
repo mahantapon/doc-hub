@@ -2,7 +2,7 @@
 // เปิด .docx → คลิกแก้ตรงไหนก็ได้ พิมพ์/ลบ/จัดหน้า → ดาวน์โหลดกลับเป็น .docx
 // ทดสอบกับสัญญาไทยจริง: ฟอนต์ฝัง, จัดคำแบบไทย, กล่องลอย, หัว-ท้ายกระดาษ คงครบหลัง export
 'use strict';
-console.log('[Doc Hub] Word editor build v10 (SuperDoc WYSIWYG)');
+console.log('[Doc Hub] Word editor build v11 (SuperDoc WYSIWYG)');
 (() => {
   let sd = null, fileName = null;
 
@@ -38,13 +38,19 @@ console.log('[Doc Hub] Word editor build v10 (SuperDoc WYSIWYG)');
     }
   }
 
+  // export + ล้างไฟล์ให้ถูกมาตรฐาน OOXML (ไม่งั้น Word ปฏิเสธไฟล์)
+  async function exportClean() {
+    const blobs = await sd.exportEditorsToDOCX();
+    if (!blobs || !blobs[0]) throw new Error('สร้างไฟล์ไม่สำเร็จ');
+    return window.DocHubDocx ? window.DocHubDocx.sanitizeDocx(blobs[0]) : blobs[0];
+  }
+
   async function download() {
     if (!sd) return;
     try {
       setMsg($('#wordMsg'), 'กำลังบันทึกไฟล์...', '');
-      const blobs = await sd.exportEditorsToDOCX();
-      if (!blobs || !blobs[0]) throw new Error('สร้างไฟล์ไม่สำเร็จ');
-      downloadBlob(blobs[0], fileName || 'document.docx');
+      const blob = await exportClean();
+      downloadBlob(blob, fileName || 'document.docx');
       setMsg($('#wordMsg'), 'ดาวน์โหลดแล้ว ✓ เปิดใน Word / ส่งต่อได้เลย', 'ok');
     } catch (e) {
       setMsg($('#wordMsg'), 'บันทึกไม่สำเร็จ: ' + e.message, 'err');
@@ -73,11 +79,10 @@ console.log('[Doc Hub] Word editor build v10 (SuperDoc WYSIWYG)');
     if (!sd) return;
     try {
       setMsg($('#wordMsg'), 'กำลังสร้างตัวอย่างผลลัพธ์จริง...', '');
-      const blobs = await sd.exportEditorsToDOCX();
-      if (!blobs || !blobs[0]) throw new Error('สร้างตัวอย่างไม่สำเร็จ');
+      const blob = await exportClean(); // ตัวอย่างต้องมาจากไฟล์เดียวกับที่จะดาวน์โหลด
       const cont = $('#wordExact');
       cont.innerHTML = '';
-      await window.docx.renderAsync(blobs[0], cont, null, { inWrapper: true, ignoreLastRenderedPageBreak: false });
+      await window.docx.renderAsync(blob, cont, null, { inWrapper: true, ignoreLastRenderedPageBreak: false });
       pane.classList.remove('hidden');
       $('#btnExact').textContent = '✖ ปิดตัวอย่าง';
       pane.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -101,9 +106,9 @@ console.log('[Doc Hub] Word editor build v10 (SuperDoc WYSIWYG)');
   window.__doc = {
     get sd() { return sd; },
     loadDocx,
+    exportClean,
     async b64() {
-      const blobs = await sd.exportEditorsToDOCX();
-      const buf = new Uint8Array(await blobs[0].arrayBuffer());
+      const buf = new Uint8Array(await (await exportClean()).arrayBuffer());
       let s = '';
       for (let i = 0; i < buf.length; i += 0x8000)
         s += String.fromCharCode.apply(null, buf.subarray(i, i + 0x8000));
